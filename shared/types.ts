@@ -24,8 +24,7 @@ export type ActionCategory =
   | "Comment"
   | "Status Change"
   | "Contractor Assignment"
-  | "Vendor Comm"
-  | "Photo Upload";
+  | "Vendor Comm";
 export interface TimelineEvent {
   id: string;
   ticketId: string;
@@ -33,7 +32,6 @@ export interface TimelineEvent {
   note: string;
   author: string;
   timestamp: string; // ISO string
-  attachmentUrl?: string;
 }
 export interface MaintenanceTicket {
   id: string;

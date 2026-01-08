@@ -16,12 +16,6 @@
   "observability": {
     "enabled": true
   },
-  "r2_buckets": [
-    {
-      "binding": "EVIDENCE_BUCKET",
-      "bucket_name": "mtrack-evidence"
-    }
-  ],
   "migrations": [
     {
       "tag": "v2",
