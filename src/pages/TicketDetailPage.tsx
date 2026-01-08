@@ -133,10 +133,10 @@ export function TicketDetailPage() {
               </div>
               {ticket.initialPhotoUrl && (
                 <div className="space-y-3 pt-2 print:hidden">
-                   <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Site Documentation</h3>
-                   <div className="aspect-video relative rounded-xl overflow-hidden border shadow-inner bg-muted/30">
-                     <img src={ticket.initialPhotoUrl} alt="Initial site condition" className="object-cover w-full h-full" />
-                   </div>
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Site Documentation</h3>
+                  <div className="aspect-video relative rounded-xl overflow-hidden border shadow-inner bg-muted/30">
+                    <img src={ticket.initialPhotoUrl} alt="Initial site condition" className="object-cover w-full h-full" />
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -153,7 +153,7 @@ export function TicketDetailPage() {
             </CardHeader>
             <CardContent className="p-4 md:p-6 pt-2 space-y-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                <div className="p-2 rounded-lg bg-teal-50 text-[hsl(179,100%,28%)] dark:bg-teal-900/20 dark:text-teal-400">
                   <MapPin className="h-4 w-4" />
                 </div>
                 <div>
@@ -190,7 +190,7 @@ export function TicketDetailPage() {
             <CardContent className="p-4 md:p-6 pt-2 space-y-4">
               {ticket.contractorName ? (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 p-2 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 rounded-lg">
+                  <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg border border-emerald-100/50">
                     <CheckCircle className="h-4 w-4 shrink-0" />
                     <span className="text-xs font-bold uppercase">Contractor Verified</span>
                   </div>

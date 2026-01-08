@@ -2,6 +2,7 @@ import React from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { MobileNav } from "./MobileNav";
+import { cn } from "@/lib/utils";
 type AppLayoutProps = {
   children: React.ReactNode;
   container?: boolean;
@@ -12,7 +13,7 @@ export function AppLayout({ children, container = false, className, contentClass
   return (
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
-      <SidebarInset className={className}>
+      <SidebarInset className={cn("bg-mesh relative", className)}>
         {/* Only show desktop trigger to keep mobile UI clean and focused on MagicNav */}
         <div className="absolute left-2 top-2 z-20 hidden md:block">
           <SidebarTrigger />

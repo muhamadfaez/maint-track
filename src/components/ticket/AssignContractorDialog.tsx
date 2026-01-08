@@ -43,10 +43,10 @@ export function AssignContractorDialog({ ticketId }: AssignContractorDialogProps
     mutationFn: (data: { contractorName: string; note: string }) =>
       api(`/api/tickets/${ticketId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           contractorName: data.contractorName,
           status: 'Assigned',
-          assignmentNote: data.note 
+          assignmentNote: data.note
         })
       }),
     onSuccess: () => {
@@ -68,7 +68,7 @@ export function AssignContractorDialog({ ticketId }: AssignContractorDialogProps
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="w-full">
+        <Button size="sm" className="btn-gradient w-full">
           <UserPlus className="h-4 w-4 mr-2" /> Assign Contractor
         </Button>
       </DialogTrigger>
@@ -92,9 +92,9 @@ export function AssignContractorDialog({ ticketId }: AssignContractorDialogProps
           </div>
           <div className="grid gap-2">
             <Label htmlFor="note">Assignment Note (Optional)</Label>
-            <Input 
-              id="note" 
-              placeholder="e.g., Scheduled for Tuesday morning" 
+            <Input
+              id="note"
+              placeholder="e.g., Scheduled for Tuesday morning"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />

@@ -32,7 +32,7 @@ export function MobileNav() {
   const CONTAINER_PADDING = 8; // Based on px-2 (8px)
   return (
     <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
-      <div className="relative flex bg-white dark:bg-slate-900 shadow-xl rounded-[20px] px-2 h-16 items-center border border-slate-200/50 dark:border-slate-800/50">
+      <div className="relative flex glass rounded-[24px] px-2 h-16 items-center shadow-2xl">
         {/* Magic Indicator Background */}
         <div
           className="absolute left-0 h-14 w-14 transition-all duration-500 ease-out z-0 pointer-events-none"
@@ -41,7 +41,7 @@ export function MobileNav() {
             top: '-28px',
           }}
         >
-          <div className="magic-indicator relative w-full h-full rounded-full bg-gradient-to-br from-[#F38020] to-[#E55A1B] shadow-[0_8px_20px_-6px_rgba(229,90,27,0.6)]" />
+          <div className="magic-indicator relative w-full h-full rounded-full bg-gradient-to-br from-[#00918e] to-[#00b5b1] shadow-[0_8px_20px_-6px_rgba(0,145,142,0.6)]" />
         </div>
         {/* Navigation Items */}
         <div className="flex relative z-10">
@@ -60,16 +60,21 @@ export function MobileNav() {
                     "flex items-center justify-center transition-all duration-500",
                     isActive
                       ? "-translate-y-7 text-white scale-110"
-                      : "text-slate-400 hover:text-slate-600 dark:text-slate-500"
+                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
                   )}
                 >
-                  <Icon className={cn("size-6", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+                  <div className={cn(
+                    "p-2 rounded-full transition-all duration-500",
+                    isActive ? "bg-transparent" : "bg-transparent"
+                  )}>
+                    <Icon className={cn("size-6", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+                  </div>
                 </div>
                 <span
                   className={cn(
                     "absolute transition-all duration-500 text-[10px] font-bold uppercase tracking-wider",
                     isActive
-                      ? "translate-y-3 opacity-100 text-[#E55A1B]"
+                      ? "translate-y-3 opacity-100 text-[#00918e] dark:text-[#00b5b1]"
                       : "translate-y-10 opacity-0 text-transparent"
                   )}
                 >

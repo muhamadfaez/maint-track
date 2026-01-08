@@ -192,7 +192,7 @@ export function NewTicketDialog() {
               )}
             />
             <DialogFooter className="pt-4">
-              <Button type="submit" disabled={mutation.isPending} className="w-full sm:w-auto">
+              <Button type="submit" disabled={mutation.isPending} className="btn-gradient w-full sm:w-auto">
                 {mutation.isPending ? "Creating..." : "Create Ticket"}
               </Button>
             </DialogFooter>

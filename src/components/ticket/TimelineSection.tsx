@@ -26,10 +26,10 @@ const categoryIcons: Record<ActionCategory, React.ElementType> = {
 };
 
 const categoryColors: Record<ActionCategory, string> = {
-  'Comment': 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  'Status Change': 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-  'Contractor Assignment': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-  'Vendor Comm': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+  'Comment': 'bg-teal-50 text-[hsl(179,100%,28%)] dark:bg-teal-950/30 dark:text-teal-400',
+  'Status Change': 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
+  'Contractor Assignment': 'bg-violet-50 text-violet-600 dark:bg-violet-900/20 dark:text-violet-400',
+  'Vendor Comm': 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
 };
 
 interface TimelineSectionProps {

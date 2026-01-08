@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area
 } from 'recharts';
 import type { MaintenanceTicket, MaintenanceCategory, TicketStatus } from '@shared/types';
-const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#ef4444', '#64748b'];
+const COLORS = ['#00918e', '#00b5b1', '#f59e0b', '#8b5cf6', '#f43f5e', '#64748b', '#0ea5e9', '#10b981'];
 interface WidgetProps {
   tickets: MaintenanceTicket[];
 }
@@ -32,10 +32,10 @@ export function CategoryDistributionChart({ tickets }: WidgetProps) {
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip 
-             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+          <Tooltip
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
           />
-          <Legend verticalAlign="bottom" height={36}/>
+          <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -51,14 +51,14 @@ export function TicketStatusChart({ tickets }: WidgetProps) {
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ left: 20, right: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.1} />
           <XAxis type="number" hide />
-          <YAxis dataKey="name" type="category" width={100} fontSize={12} axisLine={false} tickLine={false} />
-          <Tooltip 
-            cursor={{ fill: 'rgba(0,0,0,0.05)' }}
-            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+          <YAxis dataKey="name" type="category" width={100} fontSize={10} axisLine={false} tickLine={false} fontWeight={600} />
+          <Tooltip
+            cursor={{ fill: 'rgba(0,145,142,0.05)' }}
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
           />
-          <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+          <Bar dataKey="value" fill="#00918e" radius={[0, 6, 6, 0]} barSize={18} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -78,15 +78,17 @@ export function MonthlyVolumeChart({ tickets }: WidgetProps) {
         <AreaChart data={data}>
           <defs>
             <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#00918e" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#00918e" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
-          <XAxis dataKey="month" fontSize={12} axisLine={false} tickLine={false} />
-          <YAxis fontSize={12} axisLine={false} tickLine={false} />
-          <Tooltip />
-          <Area type="monotone" dataKey="volume" stroke="#3b82f6" fillOpacity={1} fill="url(#colorVol)" strokeWidth={2} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
+          <XAxis dataKey="month" fontSize={10} axisLine={false} tickLine={false} fontWeight={600} />
+          <YAxis fontSize={10} axisLine={false} tickLine={false} fontWeight={600} />
+          <Tooltip
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
+          />
+          <Area type="monotone" dataKey="volume" stroke="#00918e" fillOpacity={1} fill="url(#colorVol)" strokeWidth={3} />
         </AreaChart>
       </ResponsiveContainer>
     </div>

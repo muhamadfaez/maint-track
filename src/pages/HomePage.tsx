@@ -8,6 +8,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { api } from '@/lib/api-client';
 import type { MaintenanceTicket } from '@shared/types';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -54,33 +55,33 @@ export function HomePage() {
         </Button>
       </div>
       <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-        <Card>
+        <Card className="glass border-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Tickets</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-teal-600 dark:text-teal-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
+            <div className="text-2xl font-bold text-[hsl(179,100%,28%)] dark:text-teal-400">{stats.active}</div>
             <p className="text-xs text-muted-foreground">Requiring attention</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="glass border-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.completed}</div>
+            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.completed}</div>
             <p className="text-xs text-muted-foreground">This period</p>
           </CardContent>
         </Card>
-        <Card className={stats.stagnantCount > 0 ? "border-destructive/50 bg-destructive/5" : ""}>
+        <Card className={cn("glass border-none", stats.stagnantCount > 0 ? "ring-1 ring-rose-500/50 bg-rose-50/10" : "")}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Stagnant</CardTitle>
-            <AlertTriangle className={`h-4 w-4 ${stats.stagnantCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+            <AlertTriangle className={`h-4 w-4 ${stats.stagnantCount > 0 ? "text-rose-500" : "text-muted-foreground"}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${stats.stagnantCount > 0 ? "text-destructive" : ""}`}>
+            <div className={`text-2xl font-bold ${stats.stagnantCount > 0 ? "text-rose-600 dark:text-rose-400" : ""}`}>
               {stats.stagnantCount}
             </div>
             <p className="text-xs text-muted-foreground">Untouched for 48h+</p>

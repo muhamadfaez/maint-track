@@ -48,7 +48,7 @@ export function ReportsPage() {
       <div className="hidden print:block border-b-2 border-slate-900 pb-6 mb-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ShieldCheck className="h-10 w-10 text-[#F38020]" />
+            <ShieldCheck className="h-10 w-10 text-[hsl(179,100%,28%)]" />
             <div>
               <h1 className="text-2xl font-black uppercase tracking-tighter">UniMaintain University</h1>
               <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Facility Management Division</p>
@@ -64,7 +64,7 @@ export function ReportsPage() {
         <Card className="print:shadow-none print:border-slate-200 shadow-sm overflow-hidden">
           <CardHeader className="pb-2 p-4 md:p-6 bg-muted/30">
             <CardTitle className="text-xs font-black flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
-              <PieChartIcon className="h-3.5 w-3.5 text-blue-500" />
+              <PieChartIcon className="h-3.5 w-3.5 text-teal-500" />
               Category Distribution
             </CardTitle>
           </CardHeader>
@@ -86,7 +86,7 @@ export function ReportsPage() {
         <Card className="print:shadow-none print:border-slate-200 shadow-sm overflow-hidden">
           <CardHeader className="pb-2 p-4 md:p-6 bg-muted/30">
             <CardTitle className="text-xs font-black flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
-              <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
               Service Trends
             </CardTitle>
           </CardHeader>
@@ -102,7 +102,7 @@ export function ReportsPage() {
               <CardTitle className="text-lg">Critical Incident Log</CardTitle>
               <CardDescription className="text-xs">Highest priority maintenance items.</CardDescription>
             </div>
-            <FileText className="h-5 w-5 text-red-500 opacity-50" />
+            <FileText className="h-5 w-5 text-rose-500 opacity-50" />
           </CardHeader>
           <CardContent className="p-4 md:p-6 pt-0">
             <div className="space-y-3">
@@ -112,7 +112,7 @@ export function ReportsPage() {
                     <span className="text-sm font-bold truncate">{ticket.title}</span>
                     <span className="text-[10px] text-muted-foreground uppercase font-medium">{ticket.location}</span>
                   </div>
-                  <div className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded uppercase ${ticket.priority === 'Emergency' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                  <div className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded uppercase ${ticket.priority === 'Emergency' ? 'bg-rose-50 text-rose-700 border border-rose-100/50' : 'bg-orange-50 text-orange-700 border border-orange-100/50'}`}>
                     {ticket.priority}
                   </div>
                 </div>
@@ -141,7 +141,7 @@ export function ReportsPage() {
                       Resolved {format(parseISO(ticket.updatedAt), 'MMM d, yyyy')}
                     </span>
                   </div>
-                  <div className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded uppercase bg-green-100 text-green-700">
+                  <div className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded uppercase bg-emerald-50 text-emerald-700 border border-emerald-100/50">
                     {ticket.status}
                   </div>
                 </div>
