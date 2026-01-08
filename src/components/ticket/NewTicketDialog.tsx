@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { PhotoUpload } from './PhotoUpload';
 const formSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
@@ -40,6 +41,7 @@ const formSchema = z.object({
   category: z.string(),
   priority: z.enum(['Low', 'Medium', 'High', 'Emergency']),
   reporter: z.string().min(2, "Reporter name is required"),
+  initialPhotoUrl: z.string().optional(),
 });
 export function NewTicketDialog() {
   const [open, setOpen] = useState(false);
@@ -186,6 +188,18 @@ export function NewTicketDialog() {
                   <FormLabel>Reporter Name</FormLabel>
                   <FormControl>
                     <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="initialPhotoUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <PhotoUpload value={field.value} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

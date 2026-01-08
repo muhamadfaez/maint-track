@@ -11,7 +11,8 @@ import {
   CheckCircle,
   AlertCircle,
   Printer,
-  MoreVertical
+  MoreVertical,
+  Trash2
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import type { MaintenanceTicket, TicketStatus } from '@shared/types';
@@ -53,6 +54,29 @@ export function TicketDetailPage() {
       toast.success('Status updated');
     }
   });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: async () => {
+      if (!ticket?.initialPhotoUrl) return;
+      const key = ticket.initialPhotoUrl.split('/').pop();
+      if (key) {
+        try {
+          await api(`/api/files/${key}`, { method: 'DELETE' });
+        } catch (e) {
+          console.error("Failed to delete from R2, proceeding with record update", e);
+        }
+      }
+      return api(`/api/tickets/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ initialPhotoUrl: null })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ticket', id] });
+      toast.success('Photo removed');
+    }
+  });
+
   const handlePrint = () => {
     window.print();
   };
@@ -134,8 +158,17 @@ export function TicketDetailPage() {
               {ticket.initialPhotoUrl && (
                 <div className="space-y-3 pt-2 print:hidden">
                   <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Site Documentation</h3>
-                  <div className="aspect-video relative rounded-xl overflow-hidden border shadow-inner bg-muted/30">
+                  <div className="aspect-video relative rounded-xl overflow-hidden border shadow-inner bg-muted/30 group">
                     <img src={ticket.initialPhotoUrl} alt="Initial site condition" className="object-cover w-full h-full" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={deletePhotoMutation.isPending}
+                      onClick={() => deletePhotoMutation.mutate()}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               )}
