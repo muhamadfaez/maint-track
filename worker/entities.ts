@@ -1,9 +1,9 @@
-import { IndexedEntity } from "./core-utils";
+import { IndexedEntity, Env } from "./core-utils";
 import type { MaintenanceTicket, TimelineEvent } from "@shared/types";
 import { MOCK_TICKETS } from "@shared/mock-data";
+
 export class TicketEntity extends IndexedEntity<MaintenanceTicket> {
-  static readonly entityName = "ticket";
-  static readonly indexName = "tickets";
+  static readonly collection = "tickets";
   static readonly initialState: MaintenanceTicket = {
     id: "",
     title: "",
@@ -17,10 +17,14 @@ export class TicketEntity extends IndexedEntity<MaintenanceTicket> {
     updatedAt: ""
   };
   static seedData = MOCK_TICKETS;
+
+  constructor(env: Env, id: string) {
+    super(env, id, TicketEntity.collection);
+  }
 }
+
 export class TimelineEntity extends IndexedEntity<TimelineEvent> {
-  static readonly entityName = "timeline";
-  static readonly indexName = "timeline-events";
+  static readonly collection = "timeline";
   static readonly initialState: TimelineEvent = {
     id: "",
     ticketId: "",
@@ -29,7 +33,14 @@ export class TimelineEntity extends IndexedEntity<TimelineEvent> {
     author: "System",
     timestamp: ""
   };
-  static async getByTicket(env: any, ticketId: string): Promise<TimelineEvent[]> {
+
+  constructor(env: Env, id: string) {
+    super(env, id, TimelineEntity.collection);
+  }
+
+  static async getByTicket(env: Env, ticketId: string): Promise<TimelineEvent[]> {
+    // Basic implementation: fetch all and filter. 
+    // Optimization: implement Firestore structured queries later.
     const { items } = await this.list(env);
     return items
       .filter(ev => ev.ticketId === ticketId)

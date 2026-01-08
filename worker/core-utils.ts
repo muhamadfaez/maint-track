@@ -1,321 +1,256 @@
 /**
- * Core utilities for Multiple Entities sharing a single Durable Object class
- * DO NOT MODIFY THIS FILE - You may break the project functionality. STRICTLY DO NOT TOUCH
- * Look at the \`worker/entities.ts\` file for examples on how to use this library
+ * Core utilities for Firestore Storage on Cloudflare Workers
+ * Redesigned to use Firestore REST API with Service Account authentication
  */
 import type { ApiResponse } from "@shared/types";
-import { DurableObject } from "cloudflare:workers"; // DO NOT MODIFY THIS LINE. This is always already installed and available
 import type { Context } from "hono";
+import * as jose from 'jose';
 
 export interface Env {
-  GlobalDurableObject: DurableObjectNamespace<GlobalDurableObject>;
+  FIREBASE_PROJECT_ID: string;
+  FIREBASE_CLIENT_EMAIL: string;
+  FIREBASE_PRIVATE_KEY: string;
+  // Keeps the type system happy if other parts still refer to it during migration
+  GlobalDurableObject?: any;
 }
 
-type Doc<T> = { v: number; data: T };
-
 /**
- * Global Durable object for storage-purpose ONLY, to be used as a KV-like storage by multiple entities
+ * Lightweight Firestore Client using REST API
  */
-export class GlobalDurableObject extends DurableObject<Env, unknown> {
-  constructor(public ctx: DurableObjectState, public env: Env) {
-    super(ctx, env);
-  }
+export class FirestoreClient {
+  private static accessToken: string | null = null;
+  private static tokenExpiry: number = 0;
 
-  /** Delete a key; returns true if it existed. */
-  async del(key: string): Promise<boolean> {
-    const existed = (await this.ctx.storage.get(key)) !== undefined;
-    await this.ctx.storage.delete(key);
-    return existed;
-  }
+  static async getAccessToken(env: Env): Promise<string> {
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
 
-  /** Fast existence check. */
-  async has(key: string): Promise<boolean> {
-    return (await this.ctx.storage.get(key)) !== undefined;
-  }
+    const now = Math.floor(Date.now() / 1000);
+    const privateKey = env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
+    const key = await jose.importPKCS8(privateKey, 'RS256');
 
-  async getDoc<T>(key: string): Promise<Doc<T> | null> {
-    const v = await this.ctx.storage.get<Doc<T>>(key);
-    return v ?? null;
-  }
+    const jwt = await new jose.SignJWT({
+      iss: env.FIREBASE_CLIENT_EMAIL,
+      sub: env.FIREBASE_CLIENT_EMAIL,
+      aud: 'https://oauth2.googleapis.com/token',
+      scope: 'https://www.googleapis.com/auth/datastore',
+      iat: now,
+      exp: now + 3600,
+    })
+      .setProtectedHeader({ alg: 'RS256' })
+      .sign(key);
 
-  async casPut<T>(key: string, expectedV: number, data: T): Promise<{ ok: boolean; v: number }> {
-    return this.ctx.storage.transaction(async (txn) => {
-      const cur = await txn.get<Doc<T>>(key);
-      const curV = cur?.v ?? 0;
-      if (curV !== expectedV) return { ok: false, v: curV };
-      const nextV = curV + 1;
-      await txn.put(key, { v: nextV, data });
-      return { ok: true, v: nextV };
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt,
+      }),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[AUTH ERROR] Google OAuth failed:', errorText);
+      throw new Error(`Google OAuth Failed: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json() as { access_token: string; expires_in: number };
+    this.accessToken = data.access_token;
+    this.tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+    return this.accessToken;
   }
 
-  async listPrefix(prefix: string, startAfter?: string | null, limit?: number) {
-    const opts: Record<string, unknown> = { prefix };
-    if (limit != null) opts.limit = limit;
-    if (startAfter)   opts.startAfter = startAfter;
-  
-    const m = await this.ctx.storage.list(opts);            // Map<string, unknown>
-    const names = Array.from((m as Map<string, unknown>).keys());
-    // Heuristic: if we got "limit" items, assume there might be more; use the last key as the cursor.
-    const next = limit != null && names.length === limit ? names[names.length - 1] : null;
-    return { keys: names, next };
-  }
-  
-  async indexAddBatch<T>(items: T[]): Promise<void> {
-    if (items.length === 0) return;
-    await this.ctx.storage.transaction(async (txn) => {
-      for (const it of items) await txn.put('i:' + String(it), 1);
+  static async request(env: Env, path: string, method: string = 'GET', body?: any) {
+    const token = await this.getAccessToken(env);
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents${path}`;
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
     });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Firestore API Error: ${response.status} ${error}`);
+    }
+
+    return response.status === 204 ? null : await response.json();
   }
-  
-  async indexRemoveBatch<T>(items: T[]): Promise<number> {
-    if (items.length === 0) return 0;
-    let removed = 0;
-    await this.ctx.storage.transaction(async (txn) => {
-      for (const it of items) {
-        const k = 'i:' + String(it);
-        const existed = (await txn.get(k)) !== undefined;
-        await txn.delete(k);
-        if (existed) removed++;
+
+  // Convert Firestore document to plain JS object
+  static fromFirestore(doc: any) {
+    const fields = doc.fields || {};
+    const result: any = {};
+    for (const [key, value] of Object.entries(fields)) {
+      result[key] = this.unwrapValue(value);
+    }
+    // Extract ID from name (projects/id/databases/(default)/documents/coll/docId)
+    result.id = doc.name.split('/').pop();
+    return result;
+  }
+
+  private static unwrapValue(value: any): any {
+    if (value.stringValue !== undefined) return value.stringValue;
+    if (value.integerValue !== undefined) return parseInt(value.integerValue);
+    if (value.doubleValue !== undefined) return value.doubleValue;
+    if (value.booleanValue !== undefined) return value.booleanValue;
+    if (value.timestampValue !== undefined) return value.timestampValue;
+    if (value.nullValue !== undefined) return null;
+    if (value.mapValue !== undefined) {
+      const res: any = {};
+      for (const [k, v] of Object.entries(value.mapValue.fields || {})) {
+        res[k] = this.unwrapValue(v);
       }
-    });
-    return removed;
-  }  
+      return res;
+    }
+    if (value.arrayValue !== undefined) {
+      return (value.arrayValue.values || []).map((v: any) => this.unwrapValue(v));
+    }
+    return value;
+  }
 
-  async indexDrop(_rootKey: string): Promise<void> { await this.ctx.storage.deleteAll(); }
-}
+  // Convert plain JS object to Firestore document fields
+  static toFirestore(data: any) {
+    const fields: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (key === 'id') continue;
+      fields[key] = this.wrapValue(value);
+    }
+    return { fields };
+  }
 
-export interface EntityStatics<S, T extends Entity<S>> {
-  new (env: Env, id: string): T; // inherited default ctor
-  readonly entityName: string;
-  readonly initialState: S;
+  private static wrapValue(value: any): any {
+    if (value === null) return { nullValue: null };
+    if (typeof value === 'string') return { stringValue: value };
+    if (typeof value === 'boolean') return { booleanValue: value };
+    if (typeof value === 'number') {
+      return Number.isInteger(value) ? { integerValue: value.toString() } : { doubleValue: value };
+    }
+    if (Array.isArray(value)) {
+      return { arrayValue: { values: value.map(v => this.wrapValue(v)) } };
+    }
+    if (typeof value === 'object') {
+      const fields: any = {};
+      for (const [k, v] of Object.entries(value)) {
+        fields[k] = this.wrapValue(v);
+      }
+      return { mapValue: { fields } };
+    }
+    return { stringValue: String(value) };
+  }
 }
 
 /**
- * Base class for entities - extend this class to create new entities
+ * Base class for Firestore Entities
  */
-export abstract class Entity<State> {
-  protected _state!: State;
-  protected _version: number = 0;
-  protected readonly stub: DurableObjectStub<GlobalDurableObject>;
-  protected readonly _id: string;
-  protected readonly entityName: string;
+export abstract class Entity<State extends { id: string }> {
   protected readonly env: Env;
+  protected readonly id: string;
+  protected readonly collection: string;
 
-  constructor(env: Env, id: string) {
+  constructor(env: Env, id: string, collection: string) {
     this.env = env;
-    this._id = id;
-
-    // Read subclass statics via new.target / constructor
-    const Ctor = this.constructor as EntityStatics<State, this>;
-    this.entityName = Ctor.entityName;
-
-    const instanceName = `${this.entityName}:${this._id}`;
-    const doId = env.GlobalDurableObject.idFromName(instanceName);
-    this.stub = env.GlobalDurableObject.get(doId);
-  }
-
-  /** Synchronous accessors */
-  get id(): string {
-    return this._id;
-  }
-  get state(): State {
-    return this._state;
-  }
-
-  /** Storage key for this entity document. */
-  protected key(): string {
-    return `${this.entityName}:${this._id}`;
-  }
-
-  /** Save and refresh cache. */
-  async save(next: State): Promise<void> {
-    for (let i = 0; i < 4; i++) {
-      await this.ensureState();
-      const res = await this.stub.casPut(this.key(), this._version, next);
-      if (res.ok) {
-        this._version = res.v;
-        this._state = next;
-        return;
-      }
-      // retry on contention
-    }
-    throw new Error("Concurrent modification detected");
-  }
-
-  protected async ensureState(): Promise<State> {
-    const Ctor = this.constructor as EntityStatics<State, this>;
-    const doc = (await this.stub.getDoc(this.key())) as Doc<State> | null;
-    if (doc == null) {
-      this._version = 0;
-      this._state = Ctor.initialState;
-      return this._state;
-    }
-    this._version = doc.v;
-    this._state = doc.data;
-    return this._state;
-  }
-
-  async mutate(updater: (current: State) => State): Promise<State> {
-    // Small bounded retry loop for CAS contention
-    for (let i = 0; i < 4; i++) {
-      const current = await this.ensureState();
-      const startV = this._version;
-      const next = updater(current);
-      const res = await this.stub.casPut(this.key(), startV, next);
-      if (res.ok) {
-        this._version = res.v;
-        this._state = next;
-        return next;
-      }
-      // someone else updated; retry
-    }
-    throw new Error("Concurrent modification detected");
+    this.id = id;
+    this.collection = collection;
   }
 
   async getState(): Promise<State> {
-    return this.ensureState();
+    const doc = await FirestoreClient.request(this.env, `/${this.collection}/${this.id}`);
+    return FirestoreClient.fromFirestore(doc);
+  }
+
+  async save(state: State): Promise<void> {
+    const body = FirestoreClient.toFirestore(state);
+    await FirestoreClient.request(this.env, `/${this.collection}/${this.id}`, 'PATCH', body);
   }
 
   async patch(p: Partial<State>): Promise<void> {
-    await this.mutate((s) => ({ ...s, ...p }));
+    const current = await this.getState();
+    await this.save({ ...current, ...p });
   }
 
   async exists(): Promise<boolean> {
-    return this.stub.has(this.key());
-  }
-
-  /** Delete the entity. */
-  async delete(): Promise<boolean> {
-    const ok = await this.stub.del(this.key());
-    if (ok) {
-      const Ctor = this.constructor as EntityStatics<State, this>;
-      this._version = 0;
-      this._state = Ctor.initialState;
+    try {
+      await this.getState();
+      return true;
+    } catch (e) {
+      return false;
     }
-    return ok;
+  }
+
+  async delete(): Promise<boolean> {
+    await FirestoreClient.request(this.env, `/${this.collection}/${this.id}`, 'DELETE');
+    return true;
   }
 }
 
-// Minimal prefix-based index held in its own DO instance.
-export class Index<T extends string> extends Entity<unknown> {
-  static readonly entityName = "sys-index-root";
-
-  constructor(env: Env, name: string) { super(env, `index:${name}`); }
-
-  /**
-   * Adds a batch of items to the index transactionally.
-   */
-  async addBatch(itemsToAdd: T[]): Promise<void> {
-    if (itemsToAdd.length === 0) return;
-    await this.stub.indexAddBatch(itemsToAdd);
-  }
-
-  async add(item: T): Promise<void> {
-    return this.addBatch([item]);
-  }
-
-  async remove(item: T): Promise<boolean> {
-    const removed = await this.removeBatch([item]);
-    return removed > 0;
-  }
-
-  async removeBatch(itemsToRemove: T[]): Promise<number> {
-    if (itemsToRemove.length === 0) return 0;
-    return this.stub.indexRemoveBatch(itemsToRemove);
-  }
-
-  async clear(): Promise<void> { await this.stub.indexDrop(this.key()); }
-
-  async page(cursor?: string | null, limit?: number): Promise<{ items: T[]; next: string | null }> {
-    const { keys, next } = await this.stub.listPrefix('i:', cursor ?? null, limit);
-    return { items: keys.map(k => k.slice(2) as T), next };
-  }
-
-  async list(): Promise<T[]> {
-    const { keys } = await this.stub.listPrefix('i:');
-    return keys.map(k => k.slice(2) as T);
-  }
-}
-
-type IS<T> = T extends new (env: Env, id: string) => IndexedEntity<infer S> ? S : never;
-type HS<TCtor> = TCtor & { indexName: string; keyOf(state: IS<TCtor>): string; seedData?: ReadonlyArray<IS<TCtor>> };
-type CtorAny = new (env: Env, id: string) => IndexedEntity<{ id: string }>;
-
+/**
+ * Indexed Entity supporting listing and batch operations
+ */
 export abstract class IndexedEntity<S extends { id: string }> extends Entity<S> {
-  static readonly indexName: string;
-  static keyOf<U extends { id: string }>(state: U): string { return state.id; }
+  static collection: string;
+  static seedData?: ReadonlyArray<any>;
 
-  // Static helpers infer S from `this` and the arguments
-  static async create<TCtor extends CtorAny>(this: HS<TCtor>, env: Env, state: IS<TCtor>): Promise<IS<TCtor>> {
-    const id = this.keyOf(state);
-    const inst = new this(env, id);
-    await inst.save(state);
-    const idx = new Index<string>(env, this.indexName);
-    await idx.add(id);
+  static async create<T extends IndexedEntity<any>>(
+    this: new (env: Env, id: string) => T,
+    env: Env,
+    state: any
+  ): Promise<any> {
+    const collection = (this as any).collection;
+    const body = FirestoreClient.toFirestore(state);
+    await FirestoreClient.request(env, `/${collection}/${state.id}`, 'PATCH', body);
     return state;
   }
 
-  static async list<TCtor extends CtorAny>(
-    this: HS<TCtor>,
+  static async list<T extends IndexedEntity<any>>(
+    this: new (env: Env, id: string) => T,
     env: Env,
-    cursor?: string | null,
-    limit?: number
-  ): Promise<{ items: IS<TCtor>[]; next: string | null }> {
-    const idx = new Index<string>(env, this.indexName);
-    const { items: ids, next } = await idx.page(cursor, limit);
-    const rows = (await Promise.all(ids.map((id) => new this(env, id).getState()))) as IS<TCtor>[];
-    return { items: rows, next };
+    _cursor?: string | null, // Pagination simplified for now
+    limit: number = 100
+  ): Promise<{ items: any[]; next: string | null }> {
+    const collection = (this as any).collection;
+    const response = (await FirestoreClient.request(env, `/${collection}?pageSize=${limit}`)) as any;
+    const documents = response.documents || [];
+    return {
+      items: documents.map((d: any) => FirestoreClient.fromFirestore(d)),
+      next: response.nextPageToken || null
+    };
   }
 
-  static async ensureSeed<TCtor extends CtorAny>(this: HS<TCtor>, env: Env): Promise<void> {
-    const idx = new Index<string>(env, this.indexName);
-    const ids = await idx.list();
-    const seeds = this.seedData;
-    if (ids.length === 0 && seeds && seeds.length > 0) {
-      await Promise.all(seeds.map(s => new this(env, this.keyOf(s)).save(s)));
-      await idx.addBatch(seeds.map(s => this.keyOf(s)));
+  static async ensureSeed<T extends IndexedEntity<any>>(
+    this: new (env: Env, id: string) => T,
+    env: Env
+  ): Promise<void> {
+    const collection = (this as any).collection;
+    const seeds = (this as any).seedData;
+    if (!seeds || seeds.length === 0) return;
+
+    const existing = await (this as any).list(env, null, 1);
+    if (existing.items.length === 0) {
+      for (const seed of seeds) {
+        await (this as any).create(env, seed);
+      }
     }
   }
 
-  /** Delete an entity document and remove its id from the index. */
-  static async delete<TCtor extends CtorAny>(this: HS<TCtor>, env: Env, id: string): Promise<boolean> {
-    const inst = new this(env, id);
-    const existed = await inst.delete();
-    const idx = new Index<string>(env, this.indexName);
-    await idx.remove(id);
-    return existed;
-  }
-
-  /** Delete many entities and prune their ids from the index. Returns number of docs removed. */
-  static async deleteMany<TCtor extends CtorAny>(this: HS<TCtor>, env: Env, ids: string[]): Promise<number> {
-    if (ids.length === 0) return 0;
-    const results = await Promise.all(ids.map(async (id) => new this(env, id).delete()));
-    const idx = new Index<string>(env, this.indexName);
-    await idx.removeBatch(ids);
-    return results.filter(Boolean).length;
-  }
-
-  /** Remove only the id from the index; does not delete the entity document. */
-  static async removeFromIndex<TCtor extends CtorAny>(this: HS<TCtor>, env: Env, id: string): Promise<void> {
-    const idx = new Index<string>(env, this.indexName);
-    await idx.remove(id);
-  }
-
-  protected override async ensureState(): Promise<S> {
-    const s = (await super.ensureState()) as S;
-    if (!s.id) {
-      // Ensure the entity state id matches the instance id for consistency
-      const withId = { ...s, id: this.id } as S;
-      this._state = withId;
-      return withId;
-    }
-    return s;
+  static async delete<T extends IndexedEntity<any>>(
+    this: new (env: Env, id: string) => T,
+    env: Env,
+    id: string
+  ): Promise<boolean> {
+    const collection = (this as any).collection;
+    await FirestoreClient.request(env, `/${collection}/${id}`, 'DELETE');
+    return true;
   }
 }
 
 // API HELPERS
-
 export const ok = <T>(c: Context, data: T) => c.json({ success: true, data } as ApiResponse<T>);
 export const bad = (c: Context, error: string) => c.json({ success: false, error } as ApiResponse, 400);
 export const notFound = (c: Context, error = 'not found') => c.json({ success: false, error } as ApiResponse, 404);
