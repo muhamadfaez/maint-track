@@ -6,30 +6,16 @@ import { logger } from 'hono/logger';
 import { Env } from './core-utils';
 export * from './core-utils';
 
-type UserRoutesModule = { userRoutes: (app: Hono<{ Bindings: Env }>) => void };
+import { userRoutes } from './user-routes';
 
-const USER_ROUTES_MODULE = './user-routes';
-const RETRY_MS = 750;
-let nextRetryAt = 0;
 let userRoutesLoaded = false;
 let userRoutesLoadError: string | null = null;
 
-const safeLoadUserRoutes = async (app: Hono<{ Bindings: Env }>) => {
+const safeLoadUserRoutes = (app: Hono<{ Bindings: Env }>) => {
   if (userRoutesLoaded) return;
-
-  const now = Date.now();
-  const shouldRetry = userRoutesLoadError !== null;
-  if (shouldRetry && now < nextRetryAt) return;
-  nextRetryAt = now + RETRY_MS;
-
-  const bust = shouldRetry && import.meta.env?.DEV ? `?t=${now}` : '';
-  const spec = `${USER_ROUTES_MODULE}${bust}`;
-
   try {
-    const mod = (await import(/* @vite-ignore */ spec)) as UserRoutesModule;
-    mod.userRoutes(app);
+    userRoutes(app);
     userRoutesLoaded = true;
-    userRoutesLoadError = null;
   } catch (e) {
     userRoutesLoadError = e instanceof Error ? e.message : String(e);
   }
