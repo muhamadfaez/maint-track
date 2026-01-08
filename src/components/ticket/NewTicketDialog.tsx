@@ -3,8 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { Plus, Camera } from 'lucide-react';
 import { api } from '@/lib/api-client';
+import { FileUpload } from './FileUpload';
 import { MAINTENANCE_CATEGORIES } from '@shared/types';
 import {
   Dialog,
@@ -40,6 +41,7 @@ const formSchema = z.object({
   category: z.string(),
   priority: z.enum(['Low', 'Medium', 'High', 'Emergency']),
   reporter: z.string().min(2, "Reporter name is required"),
+  initialPhotoUrl: z.string().optional(),
 });
 export function NewTicketDialog() {
   const [open, setOpen] = useState(false);
@@ -53,13 +55,14 @@ export function NewTicketDialog() {
       category: 'Other',
       priority: 'Medium',
       reporter: 'Staff User',
+      initialPhotoUrl: '',
     },
   });
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof formSchema>) =>
-      api('/api/tickets', { 
-        method: 'POST', 
-        body: JSON.stringify(values) 
+      api('/api/tickets', {
+        method: 'POST',
+        body: JSON.stringify(values)
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
@@ -180,12 +183,18 @@ export function NewTicketDialog() {
             />
             <FormField
               control={form.control}
-              name="reporter"
+              name="initialPhotoUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reporter Name</FormLabel>
+                  <FormLabel className="flex items-center gap-2">
+                    <Camera className="h-4 w-4" /> Photo Evidence (Optional)
+                  </FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <FileUpload
+                      onUploadComplete={(url) => field.onChange(url)}
+                      label="Upload Photo proof"
+                      accept="image/*"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

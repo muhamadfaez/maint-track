@@ -114,4 +114,38 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const deleted = await TicketEntity.delete(c.env, id);
     return ok(c, { id, deleted });
   });
+
+  // FILE UPLOADS (R2)
+  app.post('/api/upload', async (c) => {
+    const body = await c.req.parseBody();
+    const file = body.file as File;
+
+    if (!file) return bad(c, 'No file uploaded');
+
+    const id = crypto.randomUUID();
+    const ext = file.name.split('.').pop() || 'bin';
+    const key = `${id}.${ext}`;
+
+    await c.env.EVIDENCE_BUCKET.put(key, await file.arrayBuffer(), {
+      httpMetadata: { contentType: file.type }
+    });
+
+    // In a real app, you'd use a custom domain or a public R2 URL.
+    // For this demo, we'll return a path that our worker can serve.
+    const url = `/api/files/${key}`;
+    return ok(c, { url, key, name: file.name, size: file.size });
+  });
+
+  app.get('/api/files/:key', async (c) => {
+    const key = c.req.param('key');
+    const object = await c.env.EVIDENCE_BUCKET.get(key);
+
+    if (!object) return notFound(c, 'File not found');
+
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set('etag', object.httpEtag);
+
+    return new Response(object.body, { headers });
+  });
 }

@@ -3,7 +3,7 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
 }
-export type MaintenanceCategory = 
+export type MaintenanceCategory =
   | "Plumbing"
   | "Electrical"
   | "HVAC"
@@ -12,7 +12,7 @@ export type MaintenanceCategory =
   | "Security"
   | "Landscaping"
   | "Other";
-export type TicketStatus = 
+export type TicketStatus =
   | "New"
   | "Assigned"
   | "In Progress"
@@ -20,7 +20,7 @@ export type TicketStatus =
   | "Pending Materials"
   | "Completed"
   | "Closed";
-export type ActionCategory = 
+export type ActionCategory =
   | "Comment"
   | "Status Change"
   | "Contractor Assignment"
@@ -33,6 +33,7 @@ export interface TimelineEvent {
   note: string;
   author: string;
   timestamp: string; // ISO string
+  attachmentUrl?: string;
 }
 export interface MaintenanceTicket {
   id: string;
