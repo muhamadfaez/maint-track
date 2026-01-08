@@ -43,7 +43,42 @@ app.use('*', logger());
 
 app.use('/api/*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowHeaders: ['Content-Type', 'Authorization'] }));
 
-app.get('/api/health', (c) => c.json({ success: true, data: { status: 'healthy', timestamp: new Date().toISOString() }}));
+app.get('/api/health', (c) => c.json({ success: true, data: { status: 'healthy', timestamp: new Date().toISOString() } }));
+
+app.get('/api/debug', async (c) => {
+  const env = c.env;
+  const checks = {
+    projectId: env.FIREBASE_PROJECT_ID ? 'Set' : 'Missing',
+    clientEmail: env.FIREBASE_CLIENT_EMAIL ? 'Set' : 'Missing',
+    privateKey: env.FIREBASE_PRIVATE_KEY ? 'Set' : 'Missing',
+  };
+
+  let firestoreStatus = 'Not Tested';
+  let errorDetail = null;
+
+  try {
+    const { FirestoreClient } = await import('./core-utils');
+    const token = await FirestoreClient.getAccessToken(env);
+    firestoreStatus = 'Auth Success: Token obtained';
+
+    // Simple test request
+    const test = await FirestoreClient.request(env, '?pageSize=1');
+    firestoreStatus += ' | Firestore Success: Connected to DB';
+  } catch (e: any) {
+    firestoreStatus = 'Failed';
+    errorDetail = e.message || String(e);
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      timestamp: new Date().toISOString(),
+      envChecks: checks,
+      firestoreStatus,
+      errorDetail
+    }
+  });
+});
 
 app.post('/api/client-errors', async (c) => {
   try {

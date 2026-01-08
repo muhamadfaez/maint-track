@@ -175,6 +175,13 @@ export abstract class Entity<State extends { id: string }> {
     await this.save({ ...current, ...p });
   }
 
+  async mutate(fn: (s: State) => State): Promise<State> {
+    const current = await this.getState();
+    const next = fn(current);
+    await this.save(next);
+    return next;
+  }
+
   async exists(): Promise<boolean> {
     try {
       await this.getState();
