@@ -98,28 +98,28 @@
     content: '';
     position: absolute;
     top: 28px;
-    left: -22px;
-    width: 20px;
+    left: -22.5px; /* Slight overlap */
+    width: 25px;
     height: 20px;
     background: transparent;
     border-top-right-radius: 20px;
-    box-shadow: 1px -10px 0 0 white;
+    box-shadow: 5px -10px 0 0 white;
   }
   .magic-indicator::after {
     content: '';
     position: absolute;
     top: 28px;
-    right: -22px;
-    width: 20px;
+    right: -22.5px; /* Slight overlap */
+    width: 25px;
     height: 20px;
     background: transparent;
     border-top-left-radius: 20px;
-    box-shadow: -1px -10px 0 0 white;
+    box-shadow: -5px -10px 0 0 white;
   }
   .dark .magic-indicator::before {
-    box-shadow: 1px -10px 0 0 #0f172a; /* Matches slate-900 nav background */
+    box-shadow: 5px -10px 0 0 #0f172a;
   }
   .dark .magic-indicator::after {
-    box-shadow: -1px -10px 0 0 #0f172a;
+    box-shadow: -5px -10px 0 0 #0f172a;
   }
 }

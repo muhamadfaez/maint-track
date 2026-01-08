@@ -35,12 +35,14 @@ export function MobileNav() {
       <div className="relative flex bg-white dark:bg-slate-900 shadow-xl rounded-[20px] px-2 h-16 items-center border border-slate-200/50 dark:border-slate-800/50">
         {/* Magic Indicator Background */}
         <div
-          className="absolute left-0 h-14 w-14 rounded-full bg-gradient-to-br from-[#F38020] to-[#E55A1B] transition-all duration-600 ease-out shadow-primary shadow-lg magic-indicator z-0"
+          className="absolute left-0 h-14 w-14 transition-all duration-500 ease-out z-0 pointer-events-none"
           style={{
             transform: `translateX(calc(${activeIndex * ITEM_WIDTH}px + ${CONTAINER_PADDING}px + ((${ITEM_WIDTH}px - 56px) / 2)))`,
-            top: '-28px', // Centered vertically relative to the top edge (56px / 2)
+            top: '-28px',
           }}
-        />
+        >
+          <div className="magic-indicator relative w-full h-full rounded-full bg-gradient-to-br from-[#F38020] to-[#E55A1B] shadow-[0_8px_20px_-6px_rgba(229,90,27,0.6)]" />
+        </div>
         {/* Navigation Items */}
         <div className="flex relative z-10">
           {navItems.map((item, index) => {
