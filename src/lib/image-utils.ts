@@ -1,15 +1,15 @@
 /**
- * Compresses an image file using the Canvas API.
+ * Compresses an image file using the Canvas API and returns a Base64 string.
  * @param file The original image file.
  * @param maxWidth Max width of the resulting image.
  * @param quality Quality from 0 to 1.
- * @returns A promise that resolves to a compressed Blob.
+ * @returns A promise that resolves to a compressed Data URL (Base64).
  */
-export async function compressImage(
+export async function compressImageToBase64(
     file: File,
-    maxWidth: number = 1200,
-    quality: number = 0.7
-): Promise<Blob> {
+    maxWidth: number = 1000,
+    quality: number = 0.6
+): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -21,7 +21,7 @@ export async function compressImage(
                 let width = img.width;
                 let height = img.height;
 
-                // Calculate new dimensions
+                // Calculate new dimensions (keeping aspect ratio)
                 if (width > maxWidth) {
                     height = (height * maxWidth) / width;
                     width = maxWidth;
@@ -38,17 +38,9 @@ export async function compressImage(
 
                 ctx.drawImage(img, 0, 0, width, height);
 
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob) {
-                            resolve(blob);
-                        } else {
-                            reject(new Error('Canvas to Blob conversion failed'));
-                        }
-                    },
-                    'image/jpeg',
-                    quality
-                );
+                // Convert to Base64 (Data URL)
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl);
             };
             img.onerror = () => reject(new Error('Image load error'));
         };

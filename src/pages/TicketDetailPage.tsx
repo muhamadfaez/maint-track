@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -24,6 +24,18 @@ import { Separator } from '@/components/ui/separator';
 import { StatusBadge, PriorityIndicator } from '@/components/ticket/TicketComponents';
 import { TimelineSection } from '@/components/ticket/TimelineSection';
 import { AssignContractorDialog } from '@/components/ticket/AssignContractorDialog';
+import { EditTicketDialog } from '@/components/ticket/EditTicketDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -35,6 +47,7 @@ import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 export function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: ticket, isLoading, error } = useQuery({
     queryKey: ['ticket', id],
@@ -56,24 +69,23 @@ export function TicketDetailPage() {
   });
 
   const deletePhotoMutation = useMutation({
-    mutationFn: async () => {
-      if (!ticket?.initialPhotoUrl) return;
-      const key = ticket.initialPhotoUrl.split('/').pop();
-      if (key) {
-        try {
-          await api(`/api/files/${key}`, { method: 'DELETE' });
-        } catch (e) {
-          console.error("Failed to delete from R2, proceeding with record update", e);
-        }
-      }
-      return api(`/api/tickets/${id}`, {
+    mutationFn: () =>
+      api(`/api/tickets/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ initialPhotoUrl: null })
-      });
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ticket', id] });
       toast.success('Photo removed');
+    }
+  });
+
+  const deleteTicketMutation = useMutation({
+    mutationFn: () => api(`/api/tickets/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      toast.success('Ticket deleted successfully');
+      navigate('/tickets');
     }
   });
 
@@ -106,30 +118,58 @@ export function TicketDetailPage() {
   return (
     <AppLayout container contentClassName="space-y-6">
       <div className="flex flex-col gap-4 print:hidden">
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" asChild className="-ml-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
             <Link to="/tickets" className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to Tickets</span><span className="sm:hidden">Back</span>
+              <ArrowLeft className="h-4 w-4" /> <span>Back to Tickets</span>
             </Link>
           </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="hidden xs:flex">
+          <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+            <Button variant="outline" size="sm" onClick={handlePrint} className="hidden md:flex h-9 shadow-sm">
               <Printer className="h-4 w-4 mr-2" /> Print
             </Button>
-            <Select
-              value={ticket.status}
-              onValueChange={(val) => updateStatusMutation.mutate(val as TicketStatus)}
-              disabled={updateStatusMutation.isPending}
-            >
-              <SelectTrigger className="w-[140px] sm:w-[180px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TICKET_STATUSES.map(s => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Select
+                value={ticket.status}
+                onValueChange={(val) => updateStatusMutation.mutate(val as TicketStatus)}
+                disabled={updateStatusMutation.isPending}
+              >
+                <SelectTrigger className="flex-1 sm:w-[160px] h-9 shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TICKET_STATUSES.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <EditTicketDialog ticket={ticket} />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm" className="h-9 px-3 shadow-sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="glass border-none">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the ticket
+                      and all associated timeline events.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="glass">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteTicketMutation.mutate()}
+                      className="bg-rose-600 hover:bg-rose-700 shadow-lg text-white"
+                    >
+                      Delete Forever
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
       </div>

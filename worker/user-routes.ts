@@ -31,12 +31,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return bad(c, 'Title, Category, and Reporter are required');
     }
     const now = new Date().toISOString();
+    const createdAt = body.createdAt || now;
     const id = crypto.randomUUID();
     const ticketData: MaintenanceTicket = {
       ...TicketEntity.initialState,
       ...body,
       id,
-      createdAt: now,
+      createdAt: createdAt,
       updatedAt: now,
       status: body.status || 'New'
     };
@@ -49,7 +50,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       category: 'Status Change',
       note: 'Ticket created',
       author: body.reporter,
-      timestamp: now
+      timestamp: createdAt
     });
 
     return ok(c, created);
@@ -66,7 +67,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const newState = await ticket.mutate(s => ({
       ...s,
       ...body,
-      updatedAt: now
+      updatedAt: now,
+      createdAt: body.createdAt || s.createdAt
     }));
 
     // Log Contractor Assignment
@@ -129,39 +131,5 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const id = c.req.param('id');
     const deleted = await TicketEntity.delete(c.env, id);
     return ok(c, { id, deleted });
-  });
-
-  // STORAGE (R2)
-  app.post('/api/upload', async (c) => {
-    const formData = await c.req.parseBody();
-    const file = formData.file as File;
-
-    if (!file) return bad(c, 'No file uploaded');
-
-    const key = `${crypto.randomUUID()}-${file.name}`;
-    await c.env.EVIDENCE_BUCKET.put(key, await file.arrayBuffer(), {
-      httpMetadata: { contentType: file.type }
-    });
-
-    return ok(c, { key, url: `/api/files/${key}` });
-  });
-
-  app.get('/api/files/:key', async (c) => {
-    const key = c.req.param('key');
-    const object = await c.env.EVIDENCE_BUCKET.get(key);
-
-    if (!object) return notFound(c, 'File not found');
-
-    const headers = new Headers();
-    object.writeHttpMetadata(headers);
-    headers.set('etag', object.httpEtag);
-
-    return new Response(object.body, { headers });
-  });
-
-  app.delete('/api/files/:key', async (c) => {
-    const key = c.req.param('key');
-    await c.env.EVIDENCE_BUCKET.delete(key);
-    return ok(c, { success: true });
   });
 }

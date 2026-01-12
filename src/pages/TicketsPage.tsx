@@ -23,19 +23,19 @@ export function TicketsPage() {
   const tickets = ticketsPage?.items ?? [];
   const filteredTickets = tickets.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
-                          t.location.toLowerCase().includes(search.toLowerCase());
+      t.location.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   return (
     <AppLayout container contentClassName="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Maintenance Tickets</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Manage and track all facility issues.</p>
+          <p className="text-sm text-muted-foreground">Manage and track all facility issues.</p>
         </div>
-        <div className="w-full md:w-auto">
+        <div className="w-full sm:w-auto">
           <NewTicketDialog />
         </div>
       </div>
@@ -79,7 +79,7 @@ export function TicketsPage() {
       <div className="grid gap-3 md:gap-4">
         {isLoading ? (
           <div className="h-48 flex items-center justify-center">
-             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : filteredTickets.length === 0 ? (
           <div className="h-48 flex flex-col items-center justify-center border rounded-xl border-dashed bg-muted/20 text-muted-foreground">
