@@ -97,36 +97,12 @@
       radial-gradient(at 100% 0%, hsla(180, 100%, 50%, 0.1) 0px, transparent 50%);
   }
 
-  /* MagicNav Cutout Curves */
-  .magic-indicator::before {
-    content: '';
-    position: absolute;
-    top: 28px;
-    left: -22.5px;
-    width: 25px;
-    height: 20px;
-    background: transparent;
-    border-top-right-radius: 20px;
-    box-shadow: 5px -10px 0 0 white;
+  .bg-dot-grid {
+    background-image: radial-gradient(hsla(178, 97%, 15%, 0.07) 1.5px, transparent 0);
+    background-size: 24px 24px;
   }
 
-  .magic-indicator::after {
-    content: '';
-    position: absolute;
-    top: 28px;
-    right: -22.5px;
-    width: 25px;
-    height: 20px;
-    background: transparent;
-    border-top-left-radius: 20px;
-    box-shadow: -5px -10px 0 0 white;
-  }
-
-  .dark .magic-indicator::before {
-    box-shadow: 5px -10px 0 0 #0f172a;
-  }
-
-  .dark .magic-indicator::after {
-    box-shadow: -5px -10px 0 0 #0f172a;
+  .dark .bg-dot-grid {
+    background-image: radial-gradient(hsla(178, 97%, 15%, 0.05) 1.5px, transparent 0);
   }
 }

@@ -15,7 +15,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, PriorityIndicator } from '@/components/ticket/TicketComponents';
-import { differenceInHours, parseISO } from 'date-fns';
+import { differenceInHours, format, parseISO } from 'date-fns';
 export function HomePage() {
   const { data: ticketsPage, isLoading } = useQuery({
     queryKey: ['tickets'],
@@ -120,6 +120,8 @@ export function HomePage() {
                       <span className="truncate">{ticket.location}</span>
                       <span>•</span>
                       <span>{ticket.category}</span>
+                      <span>•</span>
+                      <span className="text-foreground/60 font-medium">{format(parseISO(ticket.createdAt), 'MMM d')}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 ml-4">

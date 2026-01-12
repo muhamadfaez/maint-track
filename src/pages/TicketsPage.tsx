@@ -102,6 +102,8 @@ export function TicketsPage() {
                       <span className="font-medium text-foreground/70">{ticket.category}</span>
                       <span className="hidden sm:inline">•</span>
                       <span className="hidden sm:inline italic">By {ticket.reporter}</span>
+                      <span>•</span>
+                      <span className="text-foreground/60">{format(parseISO(ticket.createdAt), 'MMM d, yyyy')}</span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">

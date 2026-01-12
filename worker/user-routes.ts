@@ -127,6 +127,35 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return ok(c, event);
   });
 
+  app.patch('/api/tickets/:id/timeline/:eventId', async (c) => {
+    const ticketId = c.req.param('id');
+    const eventId = c.req.param('eventId');
+    const body = await c.req.json() as Partial<TimelineEvent>;
+
+    const ticket = new TicketEntity(c.env, ticketId);
+    if (!await ticket.exists()) return notFound(c, 'Ticket not found');
+
+    // Verify event exists (optional but good practice, though Firestore merge handles it)
+    const events = await TimelineEntity.getByTicket(c.env, ticketId);
+    const existing = events.find(e => e.id === eventId);
+    if (!existing) return notFound(c, 'Event not found');
+
+    const now = new Date().toISOString();
+
+    // We reuse create/upsert logic since TimelineEntity uses simple storage
+    const updatedEvent = {
+      ...existing,
+      ...body,
+      id: eventId,
+      ticketId
+    };
+
+    await TimelineEntity.create(c.env, updatedEvent);
+    await ticket.patch({ updatedAt: now }); // Touch ticket
+
+    return ok(c, updatedEvent);
+  });
+
   app.delete('/api/tickets/:id', async (c) => {
     const id = c.req.param('id');
     const deleted = await TicketEntity.delete(c.env, id);

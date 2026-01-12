@@ -7,7 +7,10 @@ import {
   PhoneCall,
   Camera,
   Send,
-  Clock
+  Clock,
+  Pencil,
+  X,
+  Check
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import type { TimelineEvent, ActionCategory } from '@shared/types';
@@ -38,6 +41,8 @@ interface TimelineSectionProps {
 
 export function TimelineSection({ ticketId }: TimelineSectionProps) {
   const [note, setNote] = React.useState('');
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editNote, setEditNote] = React.useState('');
   const queryClient = useQueryClient();
 
   const { data: events, isLoading } = useQuery({
@@ -63,9 +68,33 @@ export function TimelineSection({ ticketId }: TimelineSectionProps) {
     }
   });
 
+  const editMutation = useMutation({
+    mutationFn: (variables: { eventId: string, note: string }) =>
+      api(`/api/tickets/${ticketId}/timeline/${variables.eventId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ note: variables.note })
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline', ticketId] });
+      setEditingId(null);
+      setEditNote('');
+      toast.success('Log updated');
+    }
+  });
+
   const handleAddNote = () => {
     if (!note.trim()) return;
     mutation.mutate(note);
+  };
+
+  const startEdit = (event: TimelineEvent) => {
+    setEditingId(event.id);
+    setEditNote(event.note);
+  };
+
+  const handleSaveEdit = (eventId: string) => {
+    if (!editNote.trim()) return;
+    editMutation.mutate({ eventId, note: editNote });
   };
 
   return (
@@ -99,14 +128,55 @@ export function TimelineSection({ ticketId }: TimelineSectionProps) {
                     <Icon className="h-3 w-3" />
                   </div>
                   {/* Content */}
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 w-full">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold">{event.author}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(parseISO(event.timestamp), { addSuffix: true })}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(parseISO(event.timestamp), { addSuffix: true })}
+                        </span>
+                        {event.category === 'Comment' && !editingId && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                            onClick={() => startEdit(event)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-sm text-foreground/90">{event.note}</p>
+
+                    {editingId === event.id ? (
+                      <div className="flex flex-col gap-2 mt-1">
+                        <Textarea
+                          value={editNote}
+                          onChange={(e) => setEditNote(e.target.value)}
+                          className="min-h-[60px] text-sm"
+                        />
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingId(null)}
+                            className="h-7 px-2 text-xs"
+                          >
+                            <X className="h-3 w-3 mr-1" /> Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveEdit(event.id)}
+                            disabled={editMutation.isPending || !editNote.trim()}
+                            className="h-7 px-2 text-xs"
+                          >
+                            <Check className="h-3 w-3 mr-1" /> Save
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-foreground/90 whitespace-pre-wrap">{event.note}</p>
+                    )}
 
                     <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
                       {event.category}

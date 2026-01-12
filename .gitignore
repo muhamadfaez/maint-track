@@ -12,6 +12,8 @@ node_modules/
 !tsconfig.node.json
 !tsconfig.worker.json
 !components.json
+!.vscode/*.json
+!public/manifest.json
 
 # Cloudflare / Wrangler
 .wrangler/
