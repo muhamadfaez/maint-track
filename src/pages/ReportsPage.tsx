@@ -15,7 +15,7 @@ export function ReportsPage() {
   });
   const tickets = ticketsPage?.items ?? [];
   const completedTickets = tickets.filter(t => t.status === 'Completed' || t.status === 'Closed');
-  const criticalTickets = tickets.filter(t => t.priority === 'Emergency' || t.priority === 'High');
+  const criticalTickets = tickets.filter(t => t.priority === 'Urgent' || t.priority === 'High');
   const handlePrint = () => {
     window.print();
   };
@@ -112,7 +112,7 @@ export function ReportsPage() {
                     <span className="text-sm font-bold truncate">{ticket.title}</span>
                     <span className="text-[10px] text-muted-foreground uppercase font-medium">{ticket.location}</span>
                   </div>
-                  <div className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded uppercase ${ticket.priority === 'Emergency' ? 'bg-rose-50 text-rose-700 border border-rose-100/50' : 'bg-orange-50 text-orange-700 border border-orange-100/50'}`}>
+                  <div className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded uppercase ${ticket.priority === 'Urgent' ? 'bg-rose-50 text-rose-700 border border-rose-100/50' : 'bg-orange-50 text-orange-700 border border-orange-100/50'}`}>
                     {ticket.priority}
                   </div>
                 </div>

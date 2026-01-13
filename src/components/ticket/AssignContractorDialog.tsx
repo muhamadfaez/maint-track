@@ -45,7 +45,7 @@ export function AssignContractorDialog({ ticketId }: AssignContractorDialogProps
         method: 'PATCH',
         body: JSON.stringify({
           contractorName: data.contractorName,
-          status: 'Assigned',
+          status: 'Waiting for Contractor',
           assignmentNote: data.note
         })
       }),

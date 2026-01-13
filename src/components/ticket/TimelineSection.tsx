@@ -25,14 +25,14 @@ const categoryIcons: Record<ActionCategory, React.ElementType> = {
   'Comment': MessageSquare,
   'Status Change': Repeat,
   'Contractor Assignment': UserPlus,
-  'Vendor Comm': PhoneCall,
+  'Contractor Communication': PhoneCall,
 };
 
 const categoryColors: Record<ActionCategory, string> = {
   'Comment': 'bg-teal-50 text-[hsl(179,100%,28%)] dark:bg-teal-950/30 dark:text-teal-400',
   'Status Change': 'bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400',
   'Contractor Assignment': 'bg-violet-50 text-violet-600 dark:bg-violet-900/20 dark:text-violet-400',
-  'Vendor Comm': 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
+  'Contractor Communication': 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
 };
 
 interface TimelineSectionProps {

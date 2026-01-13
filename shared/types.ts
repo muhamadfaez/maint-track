@@ -7,24 +7,23 @@ export type MaintenanceCategory =
   | "Plumbing"
   | "Electrical"
   | "HVAC"
-  | "Carpentry"
-  | "Janitorial"
+  | "Civil"
+  | "Cleaning"
   | "Security"
   | "Landscaping"
   | "Other";
 export type TicketStatus =
   | "New"
-  | "Assigned"
   | "In Progress"
-  | "Waiting for Quote"
-  | "Pending Materials"
+  | "Waiting for Contractor"
+  | "Pending"
   | "Completed"
   | "Closed";
 export type ActionCategory =
   | "Comment"
   | "Status Change"
   | "Contractor Assignment"
-  | "Vendor Comm";
+  | "Contractor Communication";
 export interface TimelineEvent {
   id: string;
   ticketId: string;
@@ -40,7 +39,7 @@ export interface MaintenanceTicket {
   location: string; // e.g., "Building A, Room 302"
   category: MaintenanceCategory;
   status: TicketStatus;
-  priority: "Low" | "Medium" | "High" | "Emergency";
+  priority: "Low" | "Medium" | "High" | "Urgent";
   reporter: string;
   contractorName?: string;
   createdAt: string; // ISO string
@@ -48,8 +47,8 @@ export interface MaintenanceTicket {
   initialPhotoUrl?: string;
 }
 export const MAINTENANCE_CATEGORIES: MaintenanceCategory[] = [
-  "Plumbing", "Electrical", "HVAC", "Carpentry", "Janitorial", "Security", "Landscaping", "Other"
+  "Plumbing", "Electrical", "HVAC", "Civil", "Cleaning", "Security", "Landscaping", "Other"
 ];
 export const TICKET_STATUSES: TicketStatus[] = [
-  "New", "Assigned", "In Progress", "Waiting for Quote", "Pending Materials", "Completed", "Closed"
+  "New", "In Progress", "Waiting for Contractor", "Pending", "Completed", "Closed"
 ];

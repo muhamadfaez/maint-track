@@ -43,7 +43,7 @@ const formSchema = z.object({
   description: z.string().optional().nullable(),
   location: z.string().min(3, "Location is mandatory"),
   category: z.string().min(1, "Category is mandatory"),
-  priority: z.enum(['Low', 'Medium', 'High', 'Emergency'], {
+  priority: z.enum(['Low', 'Medium', 'High', 'Urgent'], {
     message: "Priority is mandatory",
   }),
   reporter: z.string().optional().nullable(),
@@ -63,7 +63,7 @@ export function NewTicketDialog() {
       location: '',
       category: 'General',
       priority: 'Medium',
-      reporter: 'Staff User',
+      reporter: 'Faez',
       createdAt: new Date(),
     },
   });
@@ -153,9 +153,17 @@ export function NewTicketDialog() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-xs sm:text-sm">Reported By</FormLabel>
-                          <FormControl>
-                            <Input {...field} value={field.value || ''} className="h-9 sm:h-10" />
-                          </FormControl>
+                          <Select onValueChange={field.onChange} defaultValue={field.value || "Faez"}>
+                            <FormControl>
+                              <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                                <SelectValue placeholder="Select Reporter" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Faez" className="text-xs sm:text-sm">Faez</SelectItem>
+                              <SelectItem value="Erry Laso" className="text-xs sm:text-sm">Erry Laso</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -249,7 +257,7 @@ export function NewTicketDialog() {
                               <SelectItem value="Low" className="text-xs sm:text-sm">Low</SelectItem>
                               <SelectItem value="Medium" className="text-xs sm:text-sm">Medium</SelectItem>
                               <SelectItem value="High" className="text-xs sm:text-sm">High</SelectItem>
-                              <SelectItem value="Emergency" className="text-xs sm:text-sm">Emergency</SelectItem>
+                              <SelectItem value="Urgent" className="text-xs sm:text-sm">Urgent</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />

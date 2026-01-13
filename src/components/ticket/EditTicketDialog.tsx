@@ -44,7 +44,7 @@ const formSchema = z.object({
     description: z.string().optional().nullable(),
     location: z.string().min(3, "Location is mandatory"),
     category: z.string().min(1, "Category is mandatory"),
-    priority: z.enum(['Low', 'Medium', 'High', 'Emergency'], {
+    priority: z.enum(['Low', 'Medium', 'High', 'Urgent'], {
         message: "Priority is mandatory",
     }),
     reporter: z.string().optional().nullable(),
@@ -68,7 +68,7 @@ export function EditTicketDialog({ ticket }: EditTicketDialogProps) {
             location: ticket.location,
             category: ticket.category,
             priority: ticket.priority,
-            reporter: ticket.reporter || 'Staff User',
+            reporter: ticket.reporter || 'Faez',
             createdAt: ticket.createdAt ? new Date(ticket.createdAt) : new Date(),
             initialPhotoUrl: ticket.initialPhotoUrl,
         },
@@ -170,9 +170,17 @@ export function EditTicketDialog({ ticket }: EditTicketDialogProps) {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="text-xs sm:text-sm">Reported By</FormLabel>
-                                                    <FormControl>
-                                                        <Input {...field} value={field.value || ''} className="h-9 sm:h-10" />
-                                                    </FormControl>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
+                                                                <SelectValue placeholder="Select Reporter" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="Faez" className="text-xs sm:text-sm">Faez</SelectItem>
+                                                            <SelectItem value="Erry Laso" className="text-xs sm:text-sm">Erry Laso</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -266,7 +274,7 @@ export function EditTicketDialog({ ticket }: EditTicketDialogProps) {
                                                             <SelectItem value="Low" className="text-xs sm:text-sm">Low</SelectItem>
                                                             <SelectItem value="Medium" className="text-xs sm:text-sm">Medium</SelectItem>
                                                             <SelectItem value="High" className="text-xs sm:text-sm">High</SelectItem>
-                                                            <SelectItem value="Emergency" className="text-xs sm:text-sm">Emergency</SelectItem>
+                                                            <SelectItem value="Urgent" className="text-xs sm:text-sm">Urgent</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
