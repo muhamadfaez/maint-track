@@ -12,15 +12,31 @@ import { StatusBadge, PriorityIndicator } from '@/components/ticket/TicketCompon
 import { NewTicketDialog } from '@/components/ticket/NewTicketDialog';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+const ITEMS_PER_PAGE = 10;
+
 export function TicketsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
   const { data: ticketsPage, isLoading } = useQuery({
     queryKey: ['tickets'],
     queryFn: () => api<{ items: MaintenanceTicket[] }>('/api/tickets'),
   });
+
   const tickets = ticketsPage?.items ?? [];
+
+  // Filter logic
   const filteredTickets = tickets.filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
       t.location.toLowerCase().includes(search.toLowerCase());
@@ -28,6 +44,17 @@ export function TicketsPage() {
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
     return matchesSearch && matchesCategory && matchesStatus;
   }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredTickets.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedTickets = filteredTickets.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, categoryFilter, statusFilter]);
+
   return (
     <AppLayout container contentClassName="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -87,35 +114,82 @@ export function TicketsPage() {
             <p>No tickets found matching your filters.</p>
           </div>
         ) : (
-          filteredTickets.map(ticket => (
-            <Link key={ticket.id} to={`/tickets/${ticket.id}`}>
-              <Card className="hover:border-primary/50 hover:bg-accent/5 transition-all cursor-pointer group rounded-xl overflow-hidden">
-                <CardContent className="p-4 flex items-center justify-between gap-4">
-                  <div className="flex flex-col gap-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-base md:text-lg truncate">{ticket.title}</span>
-                      <PriorityIndicator priority={ticket.priority} />
+          <>
+            {paginatedTickets.map(ticket => (
+              <Link key={ticket.id} to={`/tickets/${ticket.id}`}>
+                <Card className="hover:border-primary/50 hover:bg-accent/5 transition-all cursor-pointer group rounded-xl overflow-hidden">
+                  <CardContent className="p-4 flex items-center justify-between gap-4">
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-base md:text-lg truncate">{ticket.title}</span>
+                        <PriorityIndicator priority={ticket.priority} />
+                      </div>
+                      <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground flex-wrap">
+                        <span className="truncate">{ticket.location}</span>
+                        <span>•</span>
+                        <span className="font-medium text-foreground/70">{ticket.category}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="hidden sm:inline italic">By {ticket.reporter}</span>
+                        <span>•</span>
+                        <span className="text-foreground/60">{format(parseISO(ticket.createdAt), 'MMM d, yyyy')}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground flex-wrap">
-                      <span className="truncate">{ticket.location}</span>
-                      <span>•</span>
-                      <span className="font-medium text-foreground/70">{ticket.category}</span>
-                      <span className="hidden sm:inline">•</span>
-                      <span className="hidden sm:inline italic">By {ticket.reporter}</span>
-                      <span>•</span>
-                      <span className="text-foreground/60">{format(parseISO(ticket.createdAt), 'MMM d, yyyy')}</span>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <StatusBadge status={ticket.status} className="whitespace-nowrap" />
+                      <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-tighter hidden xs:block">
+                        Updated {format(parseISO(ticket.updatedAt), 'MMM d')}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <StatusBadge status={ticket.status} className="whitespace-nowrap" />
-                    <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-tighter hidden xs:block">
-                      Updated {format(parseISO(ticket.updatedAt), 'MMM d')}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) setCurrentPage(c => c - 1);
+                        }}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          href="#"
+                          isActive={currentPage === page}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(page);
+                          }}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < totalPages) setCurrentPage(c => c + 1);
+                        }}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         )}
       </div>
     </AppLayout>
