@@ -4,14 +4,13 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 export type MaintenanceCategory =
-  | "Plumbing"
+  | "Plumbing & sanitary"
   | "Electrical"
-  | "HVAC"
-  | "Civil"
-  | "Cleaning"
-  | "Security"
-  | "Landscaping"
-  | "Other";
+  | "Mechanical / HVAC"
+  | "Building Structural"
+  | "Security & Safety"
+  | "Civil";
+
 export type TicketStatus =
   | "New"
   | "In Progress"
@@ -19,11 +18,13 @@ export type TicketStatus =
   | "Pending"
   | "Completed"
   | "Closed";
+
 export type ActionCategory =
   | "Comment"
   | "Status Change"
   | "Contractor Assignment"
   | "Contractor Communication";
+
 export interface TimelineEvent {
   id: string;
   ticketId: string;
@@ -32,6 +33,7 @@ export interface TimelineEvent {
   author: string;
   timestamp: string; // ISO string
 }
+
 export interface MaintenanceTicket {
   id: string;
   title: string;
@@ -46,8 +48,14 @@ export interface MaintenanceTicket {
   updatedAt: string; // ISO string
   initialPhotoUrl?: string;
 }
+
 export const MAINTENANCE_CATEGORIES: MaintenanceCategory[] = [
-  "Plumbing", "Electrical", "HVAC", "Civil", "Cleaning", "Security", "Landscaping", "Other"
+  "Plumbing & sanitary",
+  "Electrical",
+  "Mechanical / HVAC",
+  "Building Structural",
+  "Security & Safety",
+  "Civil"
 ];
 export const TICKET_STATUSES: TicketStatus[] = [
   "New", "In Progress", "Waiting for Contractor", "Pending", "Completed", "Closed"

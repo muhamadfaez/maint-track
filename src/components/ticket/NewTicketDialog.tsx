@@ -61,7 +61,7 @@ export function NewTicketDialog() {
       title: '',
       description: '',
       location: '',
-      category: 'General',
+      category: 'Civil',
       priority: 'Medium',
       reporter: 'Faez',
       createdAt: new Date(),
