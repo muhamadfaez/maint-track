@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Printer, Download, BarChart3, PieChart as PieChartIcon, TrendingUp, ShieldCheck, FileText, Loader2, Table } from 'lucide-react';
+import { Printer, Download, BarChart3, PieChart as PieChartIcon, TrendingUp, ShieldCheck, FileText, Loader2, Table, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import type { MaintenanceTicket } from '@shared/types';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -13,12 +13,23 @@ import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { DateRange } from 'react-day-picker';
-import { ReportTable } from '@/components/report/ReportTable'; // Import the new component
+import { ReportTable } from '@/components/report/ReportTable';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Eye } from 'lucide-react';
+
+interface RefinedTicketData {
+  id: string;
+  refinedTitle: string;
+  refinedDescription: string;
+}
 
 export function ReportsPage() {
-  const reportRef = useRef<HTMLDivElement>(null); // Ref for the on-screen dashboard
-  const tableRef = useRef<HTMLDivElement>(null);  // Ref for the hidden table
+  const reportRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
+  const [isRefining, setIsRefining] = React.useState(false);
+  const [refinedData, setRefinedData] = React.useState<Map<string, RefinedTicketData>>(new Map());
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(subMonths(new Date(), 2)),
     to: endOfMonth(new Date()),
@@ -42,7 +53,7 @@ export function ReportsPage() {
   };
 
   // Filter tickets by date range
-  const tickets = React.useMemo(() => {
+  const rawTickets = React.useMemo(() => {
     if (!dateRange?.from) return allTickets;
 
     return allTickets.filter(t => {
@@ -54,6 +65,56 @@ export function ReportsPage() {
       return isWithinInterval(ticketDate, { start: dateRange.from!, end: dateRange.to! });
     });
   }, [allTickets, dateRange]);
+
+  // Merge refined data
+  const tickets = React.useMemo(() => {
+    if (refinedData.size === 0) return rawTickets;
+
+    return rawTickets.map(t => {
+      const refined = refinedData.get(t.id);
+      return refined ? { ...t, title: refined.refinedTitle, description: refined.refinedDescription, originalTitle: t.title } : t;
+    });
+  }, [rawTickets, refinedData]);
+
+  const handleRefineAI = async () => {
+    if (rawTickets.length === 0) {
+      toast.error("No tickets to refine");
+      return;
+    }
+
+    setIsRefining(true);
+    toast.info("Refining ticket descriptions with AI... This may take a moment.");
+
+    try {
+      // Prepare payload
+      const payload = rawTickets.map(t => ({
+        id: t.id,
+        title: t.title,
+        description: t.description || '',
+        location: t.location
+      }));
+
+      const response = await api<{ refined: RefinedTicketData[] }>('/api/ai/refine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tickets: payload })
+      });
+
+      // Update state
+      const newMap = new Map(refinedData);
+      response.refined.forEach(r => {
+        newMap.set(r.id, r);
+      });
+      setRefinedData(newMap);
+
+      toast.success(`Successfully refined ${response.refined.length} tickets!`);
+    } catch (error) {
+      console.error("AI Refinement failed", error);
+      toast.error("Failed to refine tickets. Check your API Key configuration.");
+    } finally {
+      setIsRefining(false);
+    }
+  };
 
   const completedTickets = tickets.filter(t => t.status === 'Rectified' || t.status === 'Closed');
   const criticalTickets = tickets.filter(t => t.priority === 'Urgent' || t.priority === 'High');
@@ -177,6 +238,32 @@ export function ReportsPage() {
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button variant="outline" size="sm" onClick={handlePrint} className="flex-1 sm:flex-none">
               <Printer className="mr-2 h-4 w-4" /> Print
+            </Button>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                  <Eye className="mr-2 h-4 w-4" /> Preview
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[230mm] max-h-[90vh] overflow-y-auto bg-slate-100">
+                <DialogHeader>
+                  <DialogTitle>Report Preview</DialogTitle>
+                  <DialogDescription>
+                    This is how your PDF report will look. {refinedData.size > 0 && <span className="text-purple-600 font-bold">✨ AI Refined Content Active</span>}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-center p-4">
+                  <div className="scale-75 origin-top shadow-lg">
+                    <ReportTable tickets={tickets} period={periodString} systemName="MTrack System" logoSrc="/apple-touch-icon.png" />
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Button variant="outline" size="sm" onClick={handleRefineAI} disabled={isRefining} className="flex-1 sm:flex-none btn-gradient-secondary">
+              {isRefining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-purple-500" />}
+              Refine AI
             </Button>
             <Button variant="outline" size="sm" onClick={handleExportCSV} className="flex-1 sm:flex-none">
               <Table className="mr-2 h-4 w-4" /> CSV

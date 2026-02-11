@@ -19,10 +19,10 @@ export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
         // Group tickets
         const rectified = tickets.filter(
             (t) => t.status === 'Rectified' || t.status === 'Closed'
-        );
+        ).sort((a, b) => a.category.localeCompare(b.category));
         const pending = tickets.filter(
             (t) => t.status === 'In Progress / Pending'
-        );
+        ).sort((a, b) => a.category.localeCompare(b.category));
 
         const TableRow = ({ ticket }: { ticket: MaintenanceTicket }) => (
             <tr className="text-sm break-inside-avoid">

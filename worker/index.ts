@@ -7,6 +7,7 @@ import { Env } from './core-utils';
 export * from './core-utils';
 
 import { userRoutes } from './user-routes';
+import { refineTicketsWithGemini, TicketToRefine } from './ai-utils';
 
 let userRoutesLoaded = false;
 let userRoutesLoadError: string | null = null;
@@ -77,8 +78,28 @@ app.post('/api/client-errors', async (c) => {
   }
 });
 
+// AI Refinement Endpoint
+app.post('/api/ai/refine', async (c) => {
+  const apiKey = c.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return c.json({ success: false, error: 'GEMINI_API_KEY not configured' }, 500);
+  }
+
+  try {
+    const body = await c.req.json<{ tickets: TicketToRefine[] }>();
+    if (!body.tickets || !Array.isArray(body.tickets)) {
+      return c.json({ success: false, error: 'Invalid input: "tickets" array required' }, 400);
+    }
+
+    const refined = await refineTicketsWithGemini(body.tickets, apiKey);
+    return c.json({ success: true, data: { refined } });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message || 'AI processing failed' }, 500);
+  }
+});
+
 app.notFound((c) => c.json({ success: false, error: 'Not Found' }, 404));
-app.onError((err, c) => { console.error(`[ERROR] ${err}`); return c.json({ success: false, error: 'Internal Server Error' }, 500); });
+app.onError((err, c) => { console.error(`[ERROR] ${err} `); return c.json({ success: false, error: 'Internal Server Error' }, 500); });
 
 console.log(`Server is running`)
 
