@@ -44,7 +44,7 @@ export function ReportsPage() {
     });
   }, [allTickets, dateRange]);
 
-  const completedTickets = tickets.filter(t => t.status === 'Completed' || t.status === 'Closed');
+  const completedTickets = tickets.filter(t => t.status === 'Rectified' || t.status === 'Closed');
   const criticalTickets = tickets.filter(t => t.priority === 'Urgent' || t.priority === 'High');
 
   const periodString = `${dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : 'Start'} - ${dateRange?.to ? format(dateRange.to, 'dd/MM/yyyy') : 'Present'}`;

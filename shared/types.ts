@@ -13,11 +13,8 @@ export type MaintenanceCategory =
   | "Other";
 
 export type TicketStatus =
-  | "New"
-  | "In Progress"
-  | "Waiting for Contractor"
-  | "Pending"
-  | "Completed"
+  | "In Progress / Pending"
+  | "Rectified"
   | "Closed";
 
 export type ActionCategory =
@@ -60,5 +57,7 @@ export const MAINTENANCE_CATEGORIES: MaintenanceCategory[] = [
   "Other"
 ];
 export const TICKET_STATUSES: TicketStatus[] = [
-  "New", "In Progress", "Waiting for Contractor", "Pending", "Completed", "Closed"
+  "In Progress / Pending",
+  "Rectified",
+  "Closed"
 ];

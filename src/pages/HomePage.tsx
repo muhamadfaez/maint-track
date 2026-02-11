@@ -23,10 +23,10 @@ export function HomePage() {
   });
   const stats = useMemo(() => {
     const tickets = ticketsPage?.items ?? [];
-    const active = tickets.filter(t => t.status !== 'Completed' && t.status !== 'Closed').length;
-    const completed = tickets.filter(t => t.status === 'Completed').length;
+    const active = tickets.filter(t => t.status !== 'Rectified' && t.status !== 'Closed').length;
+    const completed = tickets.filter(t => t.status === 'Rectified').length;
     const stagnant = tickets.filter(t => {
-      if (t.status === 'Completed' || t.status === 'Closed') return false;
+      if (t.status === 'Rectified' || t.status === 'Closed') return false;
       const hours = differenceInHours(new Date(), parseISO(t.updatedAt));
       return hours >= 48;
     });

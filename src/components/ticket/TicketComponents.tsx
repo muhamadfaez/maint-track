@@ -15,18 +15,14 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const getStatusStyles = (s: TicketStatus) => {
     switch (s) {
-      case 'New':
-        return 'bg-teal-50 text-[hsl(179,100%,28%)] border-teal-100/50 dark:bg-teal-950/30 dark:text-teal-400';
-      case 'In Progress':
+      case 'In Progress / Pending':
         return 'bg-amber-50 text-amber-700 border-amber-100/50 dark:bg-amber-900/20 dark:text-amber-400';
-      case 'Completed':
+      case 'Rectified':
         return 'bg-emerald-50 text-emerald-700 border-emerald-100/50 dark:bg-emerald-900/20 dark:text-emerald-400';
-      case 'Waiting for Contractor':
-      case 'Pending':
-        return 'bg-violet-50 text-violet-700 border-violet-100/50 dark:bg-violet-900/20 dark:text-violet-400';
       case 'Closed':
         return 'bg-slate-50 text-slate-600 border-slate-200/50 dark:bg-slate-800 dark:text-slate-400';
       default:
+        // Fallback for legacy statuses
         return 'bg-slate-50 text-slate-600 border-slate-200';
     }
   };

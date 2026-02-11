@@ -21,10 +21,10 @@ interface WidgetProps {
 
 export function KPIGrid({ tickets }: WidgetProps) {
   const total = tickets.length;
-  const completed = tickets.filter(t => t.status === 'Completed' || t.status === 'Closed').length;
+  const completed = tickets.filter(t => t.status === 'Rectified' || t.status === 'Closed').length;
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const critical = tickets.filter(t => (t.priority === 'Urgent' || t.priority === 'High') && t.status !== 'Completed' && t.status !== 'Closed').length;
-  const pending = tickets.filter(t => t.status !== 'Completed' && t.status !== 'Closed').length;
+  const critical = tickets.filter(t => (t.priority === 'Urgent' || t.priority === 'High') && t.status === 'In Progress / Pending').length;
+  const pending = tickets.filter(t => t.status === 'In Progress / Pending').length;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6 break-inside-avoid">

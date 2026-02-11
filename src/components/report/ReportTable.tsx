@@ -11,57 +11,59 @@ export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
     ({ tickets, period }, ref) => {
         // Group tickets
         const rectified = tickets.filter(
-            (t) => t.status === 'Completed' || t.status === 'Closed'
+            (t) => t.status === 'Rectified' || t.status === 'Closed'
         );
         const pending = tickets.filter(
-            (t) => t.status !== 'Completed' && t.status !== 'Closed'
+            (t) => t.status === 'In Progress / Pending'
         );
 
         const TableRow = ({ ticket }: { ticket: MaintenanceTicket }) => (
-            <tr className="border-b border-black/20 text-xs break-inside-avoid">
-                <td className="p-2 border-r border-black/20 w-[15%] align-top">
+            <tr className="text-sm break-inside-avoid">
+                <td className="p-3 border border-black align-top">
                     {format(parseISO(ticket.createdAt), 'dd/MM/yyyy')}
                 </td>
-                <td className="p-2 border-r border-black/20 w-[20%] align-top">
+                <td className="p-3 border border-black align-top">
                     {ticket.category}
                 </td>
-                <td className="p-2 border-r border-black/20 w-[50%] align-top">
-                    <div className="font-bold mb-1">{ticket.title}</div>
-                    <div className="text-[10px] text-gray-600">{ticket.location}</div>
+                <td className="p-3 border border-black align-top">
+                    <span className="font-medium">{ticket.title}</span> at {ticket.location}
+                    {ticket.description && (
+                        <div className="text-xs text-slate-600 mt-1">{ticket.description}</div>
+                    )}
                 </td>
-                <td className="p-2 w-[15%] align-top font-bold text-center">
-                    {ticket.status === 'Completed' || ticket.status === 'Closed'
+                <td className="p-3 border border-black align-top text-center font-medium">
+                    {ticket.status === 'Rectified' || ticket.status === 'Closed'
                         ? 'Rectified'
-                        : ticket.status}
+                        : 'Pending'}
                 </td>
             </tr>
         );
 
         return (
-            <div ref={ref} className="bg-white p-8 font-serif text-black max-w-[210mm] mx-auto hidden print:block">
+            <div ref={ref} className="bg-white p-8 text-black w-[210mm] min-h-[297mm] mx-auto hidden print:block box-border">
                 {/* Header */}
-                <div className="mb-8 border-b-2 border-black pb-4">
-                    <h1 className="text-2xl font-bold uppercase mb-2">Maintenance Report</h1>
-                    <div className="flex justify-between text-sm">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold uppercase mb-4 text-center border-b-2 border-black pb-4">Maintenance Report</h1>
+                    <div className="flex justify-between text-sm font-medium mb-4">
                         <span><strong>Period:</strong> {period}</span>
                         <span><strong>Generated:</strong> {format(new Date(), 'dd/MM/yyyy')}</span>
                     </div>
                 </div>
 
                 {/* Table */}
-                <table className="w-full border-2 border-black border-collapse">
+                <table className="w-full border-collapse border border-black text-sm">
                     <thead>
-                        <tr className="bg-gray-100 border-b-2 border-black text-left text-sm font-bold uppercase">
-                            <th className="p-2 border-r border-black">Date</th>
-                            <th className="p-2 border-r border-black">Category</th>
-                            <th className="p-2 border-r border-black">Report / Issue (Refined)</th>
-                            <th className="p-2">Status</th>
+                        <tr className="bg-gray-200">
+                            <th className="p-3 border border-black text-left font-bold w-[120px]">Date</th>
+                            <th className="p-3 border border-black text-left font-bold w-[150px]">Category</th>
+                            <th className="p-3 border border-black text-left font-bold">Report / Issue (Refined)</th>
+                            <th className="p-3 border border-black text-center font-bold w-[100px]">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {/* Rectified Section */}
-                        <tr className="bg-gray-50 border-b border-black font-bold">
-                            <td colSpan={4} className="p-2 uppercase tracking-wide">
+                        <tr className="bg-gray-100/50">
+                            <td colSpan={4} className="p-3 border border-black font-bold text-lg">
                                 Rectified
                             </td>
                         </tr>
@@ -69,15 +71,15 @@ export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
                             rectified.map((t) => <TableRow key={t.id} ticket={t} />)
                         ) : (
                             <tr>
-                                <td colSpan={4} className="p-4 text-center text-gray-500 italic border-b border-black/20">
+                                <td colSpan={4} className="p-4 border border-black text-center text-gray-500 italic">
                                     No rectified items in this period.
                                 </td>
                             </tr>
                         )}
 
                         {/* Pending Section */}
-                        <tr className="bg-gray-50 border-b border-black border-t-2 font-bold">
-                            <td colSpan={4} className="p-2 uppercase tracking-wide">
+                        <tr className="bg-gray-100/50">
+                            <td colSpan={4} className="p-3 border border-black font-bold text-lg">
                                 Pending
                             </td>
                         </tr>
@@ -85,7 +87,7 @@ export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
                             pending.map((t) => <TableRow key={t.id} ticket={t} />)
                         ) : (
                             <tr>
-                                <td colSpan={4} className="p-4 text-center text-gray-500 italic">
+                                <td colSpan={4} className="p-4 border border-black text-center text-gray-500 italic">
                                     No pending items in this period.
                                 </td>
                             </tr>
@@ -94,14 +96,16 @@ export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
                 </table>
 
                 {/* Footer */}
-                <div className="mt-8 pt-8 border-t border-black grid grid-cols-2 gap-12 text-sm">
+                <div className="mt-12 pt-8 grid grid-cols-2 gap-12 text-sm">
                     <div>
                         <p className="font-bold mb-8">Prepared By:</p>
                         <div className="border-b border-black w-2/3"></div>
+                        <p className="mt-2 text-xs text-gray-500">Facility Manager</p>
                     </div>
                     <div>
                         <p className="font-bold mb-8">Verified By:</p>
                         <div className="border-b border-black w-2/3"></div>
+                        <p className="mt-2 text-xs text-gray-500">Director of Operations</p>
                     </div>
                 </div>
             </div>

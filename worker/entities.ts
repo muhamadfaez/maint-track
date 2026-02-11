@@ -10,7 +10,7 @@ export class TicketEntity extends IndexedEntity<MaintenanceTicket> {
     description: "",
     location: "",
     category: "Other",
-    status: "New",
+    status: "In Progress / Pending",
     priority: "Medium",
     reporter: "",
     createdAt: "",
