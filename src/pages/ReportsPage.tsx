@@ -21,6 +21,8 @@ interface RefinedTicketData {
   id: string;
   refinedTitle: string;
   refinedDescription: string;
+  refinedLocation: string;
+  refinedCategory: string;
 }
 
 export function ReportsPage() {
@@ -72,7 +74,14 @@ export function ReportsPage() {
 
     return rawTickets.map(t => {
       const refined = refinedData.get(t.id);
-      return refined ? { ...t, title: refined.refinedTitle, description: refined.refinedDescription, originalTitle: t.title } : t;
+      return refined ? {
+        ...t,
+        title: refined.refinedTitle,
+        description: refined.refinedDescription,
+        location: refined.refinedLocation,
+        category: refined.refinedCategory as any,
+        originalTitle: t.title
+      } : t;
     });
   }, [rawTickets, refinedData]);
 
@@ -91,7 +100,8 @@ export function ReportsPage() {
         id: t.id,
         title: t.title,
         description: t.description || '',
-        location: t.location
+        location: t.location,
+        category: t.category
       }));
 
       const response = await api<{ refined: RefinedTicketData[] }>('/api/ai/refine', {
