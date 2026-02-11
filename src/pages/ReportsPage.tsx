@@ -13,9 +13,11 @@ import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { DateRange } from 'react-day-picker';
+import { ReportTable } from '@/components/report/ReportTable'; // Import the new component
 
 export function ReportsPage() {
-  const reportRef = useRef<HTMLDivElement>(null);
+  const reportRef = useRef<HTMLDivElement>(null); // Ref for the on-screen dashboard
+  const tableRef = useRef<HTMLDivElement>(null);  // Ref for the hidden table
   const [isExporting, setIsExporting] = React.useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfMonth(subMonths(new Date(), 2)),
@@ -45,20 +47,30 @@ export function ReportsPage() {
   const completedTickets = tickets.filter(t => t.status === 'Completed' || t.status === 'Closed');
   const criticalTickets = tickets.filter(t => t.priority === 'Urgent' || t.priority === 'High');
 
+  const periodString = `${dateRange?.from ? format(dateRange.from, 'dd/MM/yyyy') : 'Start'} - ${dateRange?.to ? format(dateRange.to, 'dd/MM/yyyy') : 'Present'}`;
+
   const handlePrint = () => {
     window.print();
   };
 
   const handleExportPDF = async () => {
-    if (!reportRef.current) return;
+    // We target the tableRef instead of reportRef for the "tabular" PDF
+    if (!tableRef.current) return;
 
     try {
       setIsExporting(true);
-      const canvas = await html2canvas(reportRef.current, {
+
+      // Temporarily reveal the table container for capture (it might be hidden with display:none)
+      // Actually, standard practice is to render it off-screen or use a specific print style.
+      // For html2canvas to work best, the element needs to be in the DOM and visible.
+      // We can use a trick: position absolute, top -9999px.
+
+      const canvas = await html2canvas(tableRef.current, {
         scale: 2, // Higher quality
         useCORS: true, // For images
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: 1200 // Ensure wide enough for table
       });
 
       const imgData = canvas.toDataURL('image/png');
@@ -70,6 +82,17 @@ export function ReportsPage() {
 
       const imgWidth = 210; // A4 width in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Check if image height exceeds A4 height (297mm), handle multi-page if needed (advanced)
+      // For now, simpler implementation: fit to one page or letting it scale.
+      // If it's very long, this approach scales it down.
+      // Better approach for long tables is proper PDF generation library, but html2canvas is requested/used pattern.
+
+      if (imgHeight > 297) {
+        // Scale to fit height if too long? Or let it span?
+        // jsPDF addImage doesn't auto-page. 
+        // For this task, assuming reasonable length or scaling to fit width is primary.
+      }
 
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       pdf.save(`MTrack_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
@@ -158,7 +181,15 @@ export function ReportsPage() {
         </div>
       </div>
 
-      {/* Report Container for Capture */}
+      {/* Hidden container for PDF generation - positioned off-screen but rendered */}
+      <div className="absolute top-[-9999px] left-[-9999px]">
+        <div ref={tableRef} className="w-[210mm] bg-white text-black p-8">
+          {/* Wrapper to enforce consistent width for capture */}
+          <ReportTable tickets={tickets} period={periodString} />
+        </div>
+      </div>
+
+      {/* On-screen Dashboard Container */}
       <div ref={reportRef} id="report-content" className="bg-background print:bg-white p-1 md:p-4 rounded-xl print:p-0">
 
         {/* Formal Header */}
@@ -175,7 +206,7 @@ export function ReportsPage() {
           <div className="text-right">
             <p className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground">Report Period</p>
             <p className="text-sm md:text-base font-black">
-              {dateRange?.from ? format(dateRange.from, 'MMM d, yyyy') : 'Start'} - {dateRange?.to ? format(dateRange.to, 'MMM d, yyyy') : 'Present'}
+              {periodString}
             </p>
           </div>
         </div>

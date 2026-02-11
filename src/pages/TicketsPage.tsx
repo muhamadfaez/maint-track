@@ -11,7 +11,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge, PriorityIndicator } from '@/components/ticket/TicketComponents';
 import { NewTicketDialog } from '@/components/ticket/NewTicketDialog';
 import { Link } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfMonth, subMonths, endOfMonth } from 'date-fns';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
 import {
   Pagination,
   PaginationContent,
@@ -27,6 +29,10 @@ export function TicketsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(subMonths(new Date(), 2)),
+    to: endOfMonth(new Date()),
+  });
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data: ticketsPage, isLoading } = useQuery({
@@ -42,7 +48,18 @@ export function TicketsPage() {
       t.location.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
+
+    let matchesDate = true;
+    if (dateRange?.from) {
+      const ticketDate = parseISO(t.createdAt);
+      if (!dateRange.to) {
+        matchesDate = ticketDate >= dateRange.from;
+      } else {
+        matchesDate = isWithinInterval(ticketDate, { start: dateRange.from, end: dateRange.to });
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesDate;
   }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
   // Pagination logic
@@ -53,7 +70,7 @@ export function TicketsPage() {
   // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [search, categoryFilter, statusFilter]);
+  }, [search, categoryFilter, statusFilter, dateRange]);
 
   return (
     <AppLayout container contentClassName="space-y-6">
@@ -67,39 +84,42 @@ export function TicketsPage() {
         </div>
       </div>
       <Card className="shadow-sm border-muted">
-        <CardContent className="p-4 flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search tickets..."
-              className="pl-9 h-10"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="grid grid-cols-2 md:flex gap-3">
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {MAINTENANCE_CATEGORIES.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {TICKET_STATUSES.map(stat => (
-                  <SelectItem key={stat} value={stat}>{stat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent className="p-4 flex flex-col gap-3">
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search tickets..."
+                className="pl-9 h-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:flex gap-3">
+              <DatePickerWithRange date={dateRange} setDate={setDateRange} className="w-full md:w-auto" />
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-10 w-full md:w-[180px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {MAINTENANCE_CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-10 w-full md:w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {TICKET_STATUSES.map(stat => (
+                    <SelectItem key={stat} value={stat}>{stat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
