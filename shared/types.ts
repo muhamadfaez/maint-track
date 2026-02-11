@@ -9,7 +9,8 @@ export type MaintenanceCategory =
   | "Mechanical / HVAC"
   | "Building Structural"
   | "Security & Safety"
-  | "Civil";
+  | "Civil"
+  | "Other";
 
 export type TicketStatus =
   | "New"
@@ -55,7 +56,8 @@ export const MAINTENANCE_CATEGORIES: MaintenanceCategory[] = [
   "Mechanical / HVAC",
   "Building Structural",
   "Security & Safety",
-  "Civil"
+  "Civil",
+  "Other"
 ];
 export const TICKET_STATUSES: TicketStatus[] = [
   "New", "In Progress", "Waiting for Contractor", "Pending", "Completed", "Closed"

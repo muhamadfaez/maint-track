@@ -1,27 +1,47 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Printer, Download, BarChart3, PieChart as PieChartIcon, TrendingUp, ShieldCheck, FileText, Loader2 } from 'lucide-react';
+import { Printer, Download, BarChart3, PieChart as PieChartIcon, TrendingUp, ShieldCheck, FileText, Loader2, Table } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import type { MaintenanceTicket } from '@shared/types';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CategoryDistributionChart, TicketStatusChart, MonthlyVolumeChart } from '@/components/report/ReportingWidgets';
-import { format, parseISO } from 'date-fns';
+import { CategoryDistributionChart, TicketStatusChart, MonthlyVolumeChart, KPIGrid } from '@/components/report/ReportingWidgets';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { format, parseISO, isWithinInterval, startOfMonth, subMonths, endOfMonth } from 'date-fns';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { DateRange } from 'react-day-picker';
 
 export function ReportsPage() {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(subMonths(new Date(), 2)),
+    to: endOfMonth(new Date()),
+  });
 
   const { data: ticketsPage, isLoading } = useQuery({
     queryKey: ['tickets'],
     queryFn: () => api<{ items: MaintenanceTicket[] }>('/api/tickets'),
   });
 
-  const tickets = ticketsPage?.items ?? [];
+  const allTickets = ticketsPage?.items ?? [];
+
+  // Filter tickets by date range
+  const tickets = React.useMemo(() => {
+    if (!dateRange?.from) return allTickets;
+
+    return allTickets.filter(t => {
+      const ticketDate = parseISO(t.createdAt);
+      if (!dateRange.to) {
+        return ticketDate >= dateRange.from!;
+      }
+      return isWithinInterval(ticketDate, { start: dateRange.from!, end: dateRange.to! });
+    });
+  }, [allTickets, dateRange]);
+
   const completedTickets = tickets.filter(t => t.status === 'Completed' || t.status === 'Closed');
   const criticalTickets = tickets.filter(t => t.priority === 'Urgent' || t.priority === 'High');
 
@@ -29,7 +49,7 @@ export function ReportsPage() {
     window.print();
   };
 
-  const handleExport = async () => {
+  const handleExportPDF = async () => {
     if (!reportRef.current) return;
 
     try {
@@ -52,13 +72,54 @@ export function ReportsPage() {
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`MTrack_Report_${format(new Date(), 'yyyy-MM')}.pdf`);
-      toast.success("Report downloaded successfully");
+      pdf.save(`MTrack_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      toast.success("PDF Report downloaded successfully");
     } catch (error) {
       console.error("Export failed", error);
       toast.error("Failed to export PDF");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (tickets.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    try {
+      const headers = ["ID", "Title", "Category", "Status", "Priority", "Location", "Reporter", "Created At", "Updated At"];
+      const rows = tickets.map(t => [
+        t.id,
+        `"${t.title.replace(/"/g, '""')}"`, // Escape quotes
+        t.category,
+        t.status,
+        t.priority,
+        `"${t.location.replace(/"/g, '""')}"`,
+        t.reporter,
+        format(parseISO(t.createdAt), 'yyyy-MM-dd HH:mm:ss'),
+        format(parseISO(t.updatedAt), 'yyyy-MM-dd HH:mm:ss')
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(r => r.join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `MTrack_Data_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("CSV Data downloaded successfully");
+    } catch (error) {
+      console.error("CSV Export failed", error);
+      toast.error("Failed to export CSV");
     }
   };
 
@@ -79,14 +140,21 @@ export function ReportsPage() {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Reports</h1>
           <p className="text-sm md:text-base text-muted-foreground">Strategic facility maintenance insights.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handlePrint} className="flex-1 md:flex-none">
-            <Printer className="mr-2 h-4 w-4" /> Print
-          </Button>
-          <Button size="sm" className="btn-gradient flex-1 md:flex-none" onClick={handleExport} disabled={isExporting}>
-            {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Export PDF
-          </Button>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full md:w-auto">
+          <DatePickerWithRange date={dateRange} setDate={setDateRange} className="w-full sm:w-auto" />
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={handlePrint} className="flex-1 sm:flex-none">
+              <Printer className="mr-2 h-4 w-4" /> Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportCSV} className="flex-1 sm:flex-none">
+              <Table className="mr-2 h-4 w-4" /> CSV
+            </Button>
+            <Button size="sm" className="btn-gradient flex-1 sm:flex-none" onClick={handleExportPDF} disabled={isExporting}>
+              {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              PDF
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -106,9 +174,14 @@ export function ReportsPage() {
           </div>
           <div className="text-right">
             <p className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground">Report Period</p>
-            <p className="text-sm md:text-base font-black">{format(new Date(), 'MMMM yyyy')}</p>
+            <p className="text-sm md:text-base font-black">
+              {dateRange?.from ? format(dateRange.from, 'MMM d, yyyy') : 'Start'} - {dateRange?.to ? format(dateRange.to, 'MMM d, yyyy') : 'Present'}
+            </p>
           </div>
         </div>
+
+        {/* KPI Grid */}
+        <KPIGrid tickets={tickets} />
 
         {/* Dashboard Widgets */}
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mb-6">
