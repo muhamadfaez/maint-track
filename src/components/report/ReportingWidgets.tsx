@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import type { MaintenanceTicket, MaintenanceCategory, TicketStatus } from '@shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, isValid } from 'date-fns';
 
 const COLORS = ['#00918e', '#00b5b1', '#f59e0b', '#8b5cf6', '#f43f5e', '#64748b', '#0ea5e9', '#10b981'];
 
@@ -143,7 +143,9 @@ export function TicketStatusChart({ tickets }: WidgetProps) {
 
 export function MonthlyVolumeChart({ tickets }: WidgetProps) {
   // Determine date range from tickets or default to last 6 months
-  const dates = tickets.map(t => parseISO(t.createdAt)).filter(d => !isNaN(d.getTime()));
+  const dates = tickets
+    .map(t => parseISO(t.createdAt))
+    .filter(d => isValid(d));
 
   let start = subMonths(new Date(), 5);
   let end = new Date();
@@ -163,10 +165,7 @@ export function MonthlyVolumeChart({ tickets }: WidgetProps) {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
 
-    const count = tickets.filter(t => {
-      const d = parseISO(t.createdAt);
-      return d >= monthStart && d <= monthEnd;
-    }).length;
+    const count = dates.filter(d => d >= monthStart && d <= monthEnd).length;
 
     return { month: monthStr, volume: count };
   });

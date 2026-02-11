@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { CategoryDistributionChart, TicketStatusChart, MonthlyVolumeChart, KPIGrid } from '@/components/report/ReportingWidgets';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { format, parseISO, isWithinInterval, startOfMonth, subMonths, endOfMonth } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfMonth, subMonths, endOfMonth, isValid } from 'date-fns';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -31,12 +31,23 @@ export function ReportsPage() {
 
   const allTickets = ticketsPage?.items ?? [];
 
+  const formatDate = (value: string, pattern: string) => {
+    const date = parseISO(value);
+    return isValid(date) ? format(date, pattern) : '—';
+  };
+
+  const csvEscape = (value: unknown) => {
+    const text = String(value ?? '');
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+
   // Filter tickets by date range
   const tickets = React.useMemo(() => {
     if (!dateRange?.from) return allTickets;
 
     return allTickets.filter(t => {
       const ticketDate = parseISO(t.createdAt);
+      if (!isValid(ticketDate)) return false;
       if (!dateRange.to) {
         return ticketDate >= dateRange.from!;
       }
@@ -54,47 +65,44 @@ export function ReportsPage() {
   };
 
   const handleExportPDF = async () => {
-    // We target the tableRef instead of reportRef for the "tabular" PDF
     if (!tableRef.current) return;
 
     try {
       setIsExporting(true);
 
-      // Temporarily reveal the table container for capture (it might be hidden with display:none)
-      // Actually, standard practice is to render it off-screen or use a specific print style.
-      // For html2canvas to work best, the element needs to be in the DOM and visible.
-      // We can use a trick: position absolute, top -9999px.
-
-      const canvas = await html2canvas(tableRef.current, {
-        scale: 2, // Higher quality
-        useCORS: true, // For images
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: 1200 // Ensure wide enough for table
-      });
-
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
 
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pages = tableRef.current.querySelectorAll<HTMLElement>('.report-page');
+      const margin = 10;
+      const imgWidth = 210 - margin * 2;
 
-      // Check if image height exceeds A4 height (297mm), handle multi-page if needed (advanced)
-      // For now, simpler implementation: fit to one page or letting it scale.
-      // If it's very long, this approach scales it down.
-      // Better approach for long tables is proper PDF generation library, but html2canvas is requested/used pattern.
+      for (let i = 0; i < pages.length; i += 1) {
+        const page = pages[i];
+        const canvas = await html2canvas(page, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          windowWidth: 1200
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      if (imgHeight > 297) {
-        // Scale to fit height if too long? Or let it span?
-        // jsPDF addImage doesn't auto-page. 
-        // For this task, assuming reasonable length or scaling to fit width is primary.
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
       }
 
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      const totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i += 1) {
+        pdf.setPage(i);
+        pdf.setFontSize(9);
+        pdf.text(`Page ${i} of ${totalPages}`, 210 - margin, 297 - margin / 2, { align: 'right' });
+      }
+
       pdf.save(`MTrack_Report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       toast.success("PDF Report downloaded successfully");
     } catch (error) {
@@ -114,19 +122,19 @@ export function ReportsPage() {
     try {
       const headers = ["ID", "Title", "Category", "Status", "Priority", "Location", "Reporter", "Created At", "Updated At"];
       const rows = tickets.map(t => [
-        t.id,
-        `"${t.title.replace(/"/g, '""')}"`, // Escape quotes
-        t.category,
-        t.status,
-        t.priority,
-        `"${t.location.replace(/"/g, '""')}"`,
-        t.reporter,
-        format(parseISO(t.createdAt), 'yyyy-MM-dd HH:mm:ss'),
-        format(parseISO(t.updatedAt), 'yyyy-MM-dd HH:mm:ss')
+        csvEscape(t.id),
+        csvEscape(t.title),
+        csvEscape(t.category),
+        csvEscape(t.status),
+        csvEscape(t.priority),
+        csvEscape(t.location),
+        csvEscape(t.reporter),
+        csvEscape(formatDate(t.createdAt, 'yyyy-MM-dd HH:mm:ss')),
+        csvEscape(formatDate(t.updatedAt, 'yyyy-MM-dd HH:mm:ss'))
       ]);
 
       const csvContent = [
-        headers.join(","),
+        headers.map(csvEscape).join(","),
         ...rows.map(r => r.join(","))
       ].join("\n");
 
@@ -181,11 +189,11 @@ export function ReportsPage() {
         </div>
       </div>
 
-      {/* Hidden container for PDF generation - positioned off-screen but rendered */}
-      <div className="absolute top-[-9999px] left-[-9999px]">
-        <div ref={tableRef} className="w-[210mm] bg-white text-black p-8">
+      {/* Hidden container for PDF generation - keep it renderable for html2canvas */}
+      <div className="fixed top-0 left-0 opacity-0 pointer-events-none -z-10 w-[210mm] min-h-[297mm]" aria-hidden="true">
+        <div ref={tableRef} className="w-[210mm] min-h-[297mm] bg-white text-black p-8 shadow-none">
           {/* Wrapper to enforce consistent width for capture */}
-          <ReportTable tickets={tickets} period={periodString} />
+          <ReportTable tickets={tickets} period={periodString} systemName="MTrack System" logoSrc="/apple-touch-icon.png" />
         </div>
       </div>
 
@@ -296,7 +304,7 @@ export function ReportsPage() {
                     <div className="flex flex-col min-w-0 flex-1 pr-4">
                       <span className="text-sm font-bold truncate">{ticket.title}</span>
                       <span className="text-[10px] text-muted-foreground font-medium uppercase">
-                        Resolved {format(parseISO(ticket.updatedAt), 'MMM d, yyyy')}
+                        Resolved {formatDate(ticket.updatedAt, 'MMM d, yyyy')}
                       </span>
                     </div>
                     <div className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded uppercase bg-emerald-50 text-emerald-700 border border-emerald-100/50">

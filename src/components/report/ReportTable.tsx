@@ -1,14 +1,21 @@
 import React from 'react';
 import type { MaintenanceTicket } from '@shared/types';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 
 interface ReportTableProps {
     tickets: MaintenanceTicket[];
     period: string;
+    systemName?: string;
+    logoSrc?: string;
 }
 
 export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
-    ({ tickets, period }, ref) => {
+    ({ tickets, period, systemName = 'MTrack System', logoSrc = '/apple-touch-icon.png' }, ref) => {
+        const formatDate = (value: string, pattern: string) => {
+            const date = parseISO(value);
+            return isValid(date) ? format(date, pattern) : '—';
+        };
+
         // Group tickets
         const rectified = tickets.filter(
             (t) => t.status === 'Rectified' || t.status === 'Closed'
@@ -20,7 +27,7 @@ export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
         const TableRow = ({ ticket }: { ticket: MaintenanceTicket }) => (
             <tr className="text-sm break-inside-avoid">
                 <td className="p-3 border border-black align-top">
-                    {format(parseISO(ticket.createdAt), 'dd/MM/yyyy')}
+                    {formatDate(ticket.createdAt, 'dd/MM/yyyy')}
                 </td>
                 <td className="p-3 border border-black align-top">
                     {ticket.category}
@@ -39,75 +46,113 @@ export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
             </tr>
         );
 
+        type Row =
+            | { type: 'section'; title: string }
+            | { type: 'ticket'; ticket: MaintenanceTicket }
+            | { type: 'empty'; message: string };
+
+        const rows: Row[] = [
+            { type: 'section', title: 'Rectified' } as Row,
+            ...(rectified.length > 0
+                ? rectified.map((ticket) => ({ type: 'ticket', ticket } as Row))
+                : [{ type: 'empty', message: 'No rectified items in this period.' } as Row]),
+            { type: 'section', title: 'Pending' } as Row,
+            ...(pending.length > 0
+                ? pending.map((ticket) => ({ type: 'ticket', ticket } as Row))
+                : [{ type: 'empty', message: 'No pending items in this period.' } as Row]),
+        ];
+
+        const ROWS_PER_PAGE = 16;
+        const pages: Row[][] = [];
+        let index = 0;
+        while (index < rows.length) {
+            let end = Math.min(index + ROWS_PER_PAGE, rows.length);
+            if (rows[end - 1]?.type === 'section') {
+                end -= 1;
+            }
+            if (end <= index) {
+                end = Math.min(index + ROWS_PER_PAGE, rows.length);
+            }
+            if (rows[index]?.type === 'section' && end - index === 1 && end < rows.length) {
+                end = Math.min(end + 1, rows.length);
+            }
+            pages.push(rows.slice(index, end));
+            index = end;
+        }
+
         return (
-            <div ref={ref} className="bg-white p-8 text-black w-[210mm] min-h-[297mm] mx-auto hidden print:block box-border">
-                {/* Header */}
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold uppercase mb-4 text-center border-b-2 border-black pb-4">Maintenance Report</h1>
-                    <div className="flex justify-between text-sm font-medium mb-4">
-                        <span><strong>Period:</strong> {period}</span>
-                        <span><strong>Generated:</strong> {format(new Date(), 'dd/MM/yyyy')}</span>
-                    </div>
-                </div>
+            <div ref={ref} className="bg-white text-black w-[210mm] mx-auto box-border">
+                {pages.map((pageRows, pageIndex) => (
+                    <div key={`report-page-${pageIndex}`} className="report-page w-[210mm] min-h-[297mm] p-8 box-border">
+                        {/* Header */}
+                        <div className="mb-6">
+                            <div className="flex items-center justify-between border-b-2 border-black pb-4 mb-4">
+                                <div className="flex items-center gap-3">
+                                    <img src={logoSrc} alt="System logo" className="h-10 w-10 object-contain" />
+                                    <div>
+                                        <p className="text-xs uppercase tracking-widest font-semibold text-slate-600">{systemName}</p>
+                                        <h1 className="text-2xl font-bold uppercase">Maintenance Report</h1>
+                                    </div>
+                                </div>
+                                <div className="text-right text-sm font-medium">
+                                    <div><strong>Period:</strong> {period}</div>
+                                    <div><strong>Generated:</strong> {format(new Date(), 'dd/MM/yyyy')}</div>
+                                </div>
+                            </div>
+                        </div>
 
-                {/* Table */}
-                <table className="w-full border-collapse border border-black text-sm">
-                    <thead>
-                        <tr className="bg-gray-200">
-                            <th className="p-3 border border-black text-left font-bold w-[120px]">Date</th>
-                            <th className="p-3 border border-black text-left font-bold w-[150px]">Category</th>
-                            <th className="p-3 border border-black text-left font-bold">Report / Issue (Refined)</th>
-                            <th className="p-3 border border-black text-center font-bold w-[100px]">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {/* Rectified Section */}
-                        <tr className="bg-gray-100/50">
-                            <td colSpan={4} className="p-3 border border-black font-bold text-lg">
-                                Rectified
-                            </td>
-                        </tr>
-                        {rectified.length > 0 ? (
-                            rectified.map((t) => <TableRow key={t.id} ticket={t} />)
-                        ) : (
-                            <tr>
-                                <td colSpan={4} className="p-4 border border-black text-center text-gray-500 italic">
-                                    No rectified items in this period.
-                                </td>
-                            </tr>
+                        {/* Table */}
+                        <table className="w-full border-collapse border border-black text-sm">
+                            <thead>
+                                <tr className="bg-gray-200">
+                                    <th className="p-3 border border-black text-left font-bold w-[120px]">Date</th>
+                                    <th className="p-3 border border-black text-left font-bold w-[150px]">Category</th>
+                                    <th className="p-3 border border-black text-left font-bold">Report / Issue (Refined)</th>
+                                    <th className="p-3 border border-black text-center font-bold w-[100px]">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pageRows.map((row, rowIndex) => {
+                                    if (row.type === 'section') {
+                                        return (
+                                            <tr key={`section-${pageIndex}-${rowIndex}`} className="bg-gray-100/50">
+                                                <td colSpan={4} className="p-3 border border-black font-bold text-lg">
+                                                    {row.title}
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+                                    if (row.type === 'empty') {
+                                        return (
+                                            <tr key={`empty-${pageIndex}-${rowIndex}`}>
+                                                <td colSpan={4} className="p-4 border border-black text-center text-gray-500 italic">
+                                                    {row.message}
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+                                    return <TableRow key={row.ticket.id} ticket={row.ticket} />;
+                                })}
+                            </tbody>
+                        </table>
+
+                        {/* Footer (last page only) */}
+                        {pageIndex === pages.length - 1 && (
+                            <div className="mt-12 pt-8 grid grid-cols-2 gap-12 text-sm">
+                                <div>
+                                    <p className="font-bold mb-8">Prepared By:</p>
+                                    <div className="border-b border-black w-2/3"></div>
+                                    <p className="mt-2 text-xs text-gray-500">Facility & Maintenance Unit</p>
+                                </div>
+                                <div>
+                                    <p className="font-bold mb-8">Verified By:</p>
+                                    <div className="border-b border-black w-2/3"></div>
+                                    <p className="mt-2 text-xs text-gray-500">Deputy Director of KICT</p>
+                                </div>
+                            </div>
                         )}
-
-                        {/* Pending Section */}
-                        <tr className="bg-gray-100/50">
-                            <td colSpan={4} className="p-3 border border-black font-bold text-lg">
-                                Pending
-                            </td>
-                        </tr>
-                        {pending.length > 0 ? (
-                            pending.map((t) => <TableRow key={t.id} ticket={t} />)
-                        ) : (
-                            <tr>
-                                <td colSpan={4} className="p-4 border border-black text-center text-gray-500 italic">
-                                    No pending items in this period.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-
-                {/* Footer */}
-                <div className="mt-12 pt-8 grid grid-cols-2 gap-12 text-sm">
-                    <div>
-                        <p className="font-bold mb-8">Prepared By:</p>
-                        <div className="border-b border-black w-2/3"></div>
-                        <p className="mt-2 text-xs text-gray-500">Facility Manager</p>
                     </div>
-                    <div>
-                        <p className="font-bold mb-8">Verified By:</p>
-                        <div className="border-b border-black w-2/3"></div>
-                        <p className="mt-2 text-xs text-gray-500">Director of Operations</p>
-                    </div>
-                </div>
+                ))}
             </div>
         );
     }
