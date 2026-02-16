@@ -94,7 +94,12 @@ app.post('/api/ai/refine', async (c) => {
     const refined = await refineTicketsWithGemini(body.tickets, apiKey);
     return c.json({ success: true, data: { refined } });
   } catch (error: any) {
-    return c.json({ success: false, error: error.message || 'AI processing failed' }, 500);
+    console.error('[AI ERROR]', error);
+    return c.json({
+      success: false,
+      error: error.message || 'AI processing failed',
+      detail: error.stack // Optional: helpful for debugging if seen in network tab
+    }, 500);
   }
 });
 

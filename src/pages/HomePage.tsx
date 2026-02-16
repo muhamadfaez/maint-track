@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -16,7 +16,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { StatusBadge, PriorityIndicator } from '@/components/ticket/TicketComponents';
 import { differenceInHours, format, parseISO } from 'date-fns';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+const ITEMS_PER_PAGE = 6;
 export function HomePage() {
+  const [currentPage, setCurrentPage] = useState(1);
   const { data: ticketsPage, isLoading } = useQuery({
     queryKey: ['tickets'],
     queryFn: () => api<{ items: MaintenanceTicket[] }>('/api/tickets'),
@@ -32,6 +43,14 @@ export function HomePage() {
     });
     return { active, completed, stagnantCount: stagnant.length, stagnant };
   }, [ticketsPage]);
+
+  const totalPages = Math.max(1, Math.ceil(stats.stagnant.length / ITEMS_PER_PAGE));
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedStagnant = stats.stagnant.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [stats.stagnantCount]);
   if (isLoading) {
     return (
       <AppLayout container>
@@ -105,7 +124,7 @@ export function HomePage() {
                 No stagnant tickets. Keep it up!
               </div>
             ) : (
-              stats.stagnant.map((ticket) => (
+              paginatedStagnant.map((ticket) => (
                 <Link
                   key={ticket.id}
                   to={`/tickets/${ticket.id}`}
@@ -132,6 +151,44 @@ export function HomePage() {
               ))
             )}
           </div>
+          {stats.stagnant.length > ITEMS_PER_PAGE && (
+            <Pagination className="mt-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage((prev) => Math.max(1, prev - 1));
+                    }}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <PaginationItem key={`page-${i + 1}`}>
+                    <PaginationLink
+                      href="#"
+                      isActive={currentPage === i + 1}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(i + 1);
+                      }}
+                    >
+                      {i + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+                    }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </CardContent>
       </Card>
     </AppLayout>

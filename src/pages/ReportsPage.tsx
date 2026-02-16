@@ -118,9 +118,9 @@ export function ReportsPage() {
       setRefinedData(newMap);
 
       toast.success(`Successfully refined ${response.refined.length} tickets!`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Refinement failed", error);
-      toast.error("Failed to refine tickets. Check your API Key configuration.");
+      toast.error(`AI Refinement failed: ${error.message || "Unknown error"}`);
     } finally {
       setIsRefining(false);
     }
