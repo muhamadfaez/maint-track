@@ -15,6 +15,7 @@ import { HomePage } from '@/pages/HomePage'
 import { TicketsPage } from '@/pages/TicketsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { TicketDetailPage } from '@/pages/TicketDetailPage'
+import { Toaster } from "@/components/ui/sonner"
 const queryClient = new QueryClient();
 const router = createBrowserRouter([
   {
@@ -43,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <RouterProvider router={router} />
+        <Toaster />
       </ErrorBoundary>
     </QueryClientProvider>
   </StrictMode>,

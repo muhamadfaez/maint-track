@@ -62,7 +62,7 @@ export const ReportTable = React.forwardRef<HTMLDivElement, ReportTableProps>(
                 : [{ type: 'empty', message: 'No pending items in this period.' } as Row]),
         ];
 
-        const ROWS_PER_PAGE = 16;
+        const ROWS_PER_PAGE = 13;
         const pages: Row[][] = [];
         let index = 0;
         while (index < rows.length) {

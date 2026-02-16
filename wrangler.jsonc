@@ -16,6 +16,9 @@
   "observability": {
     "enabled": true
   },
+  "ai": {
+    "binding": "AI"
+  },
   "migrations": [
     {
       "tag": "v2",

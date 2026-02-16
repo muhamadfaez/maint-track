@@ -11,6 +11,7 @@ export interface Env {
   FIREBASE_CLIENT_EMAIL: string;
   FIREBASE_PRIVATE_KEY: string;
   GEMINI_API_KEY: string;
+  AI: any; // Ideally this should be `Ai` from @cloudflare/workers-types but `any` works for now
   // Keeps the type system happy if other parts still refer to it during migration
   GlobalDurableObject?: any;
 }

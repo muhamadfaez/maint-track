@@ -13,7 +13,7 @@ export function AppLayout({ children, container = false, className, contentClass
   return (
     <SidebarProvider defaultOpen={false}>
       <AppSidebar />
-      <SidebarInset className={cn("bg-mesh bg-dot-grid relative", className)}>
+      <SidebarInset className={cn("bg-mesh bg-dot-grid relative overflow-x-hidden", className)}>
         {/* Only show desktop trigger to keep mobile UI clean and focused on MagicNav */}
         <div className="absolute left-2 top-2 z-20 hidden md:block">
           <SidebarTrigger />

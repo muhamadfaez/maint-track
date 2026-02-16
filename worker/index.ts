@@ -7,7 +7,7 @@ import { Env } from './core-utils';
 export * from './core-utils';
 
 import { userRoutes } from './user-routes';
-import { refineTicketsWithGemini, TicketToRefine } from './ai-utils';
+import { refineTicketsWithAI, TicketToRefine } from './ai-utils';
 
 let userRoutesLoaded = false;
 let userRoutesLoadError: string | null = null;
@@ -80,9 +80,9 @@ app.post('/api/client-errors', async (c) => {
 
 // AI Refinement Endpoint
 app.post('/api/ai/refine', async (c) => {
-  const apiKey = c.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return c.json({ success: false, error: 'GEMINI_API_KEY not configured' }, 500);
+  const ai = c.env.AI;
+  if (!ai) {
+    return c.json({ success: false, error: 'AI binding not configured' }, 500);
   }
 
   try {
@@ -91,7 +91,7 @@ app.post('/api/ai/refine', async (c) => {
       return c.json({ success: false, error: 'Invalid input: "tickets" array required' }, 400);
     }
 
-    const refined = await refineTicketsWithGemini(body.tickets, apiKey);
+    const refined = await refineTicketsWithAI(body.tickets, ai);
     return c.json({ success: true, data: { refined } });
   } catch (error: any) {
     console.error('[AI ERROR]', error);

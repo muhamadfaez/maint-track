@@ -92,34 +92,63 @@ export function ReportsPage() {
     }
 
     setIsRefining(true);
-    toast.info("Refining ticket descriptions with AI... This may take a moment.");
+    const BATCH_SIZE = 2;
+    const totalBatches = Math.ceil(rawTickets.length / BATCH_SIZE);
+    let processedCount = 0;
+    let successCount = 0;
+
+    toast.info(`Starting AI refinement for ${rawTickets.length} tickets...`);
 
     try {
-      // Prepare payload
-      const payload = rawTickets.map(t => ({
-        id: t.id,
-        title: t.title,
-        description: t.description || '',
-        location: t.location,
-        category: t.category
-      }));
-
-      const response = await api<{ refined: RefinedTicketData[] }>('/api/ai/refine', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tickets: payload })
-      });
-
-      // Update state
       const newMap = new Map(refinedData);
-      response.refined.forEach(r => {
-        newMap.set(r.id, r);
-      });
-      setRefinedData(newMap);
 
-      toast.success(`Successfully refined ${response.refined.length} tickets!`);
+      for (let i = 0; i < rawTickets.length; i += BATCH_SIZE) {
+        const batch = rawTickets.slice(i, i + BATCH_SIZE);
+        const currentBatchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+        toast.loading(`Refining batch ${currentBatchNum}/${totalBatches}...`, { id: 'ai-refine-progress' });
+
+        try {
+          const payload = batch.map(t => ({
+            id: t.id,
+            title: t.title,
+            description: t.description || '',
+            location: t.location,
+            category: t.category
+          }));
+
+          const response = await api<{ refined: RefinedTicketData[] }>('/api/ai/refine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tickets: payload })
+          });
+
+          if (response.refined && Array.isArray(response.refined)) {
+            response.refined.forEach(r => {
+              newMap.set(r.id, r);
+            });
+            successCount += response.refined.length;
+          }
+        } catch (err) {
+          console.error(`Batch ${currentBatchNum} failed:`, err);
+          // Continue to next batch instead of stopping entirely
+        }
+
+        processedCount += batch.length;
+      }
+
+      setRefinedData(newMap);
+      toast.dismiss('ai-refine-progress');
+
+      if (successCount > 0) {
+        toast.success(`Successfully refined ${successCount}/${rawTickets.length} tickets!`);
+      } else {
+        toast.error("Failed to refine any tickets. Please try again.");
+      }
+
     } catch (error: any) {
-      console.error("AI Refinement failed", error);
+      toast.dismiss('ai-refine-progress');
+      console.error("AI Refinement critical error", error);
       toast.error(`AI Refinement failed: ${error.message || "Unknown error"}`);
     } finally {
       setIsRefining(false);
@@ -237,7 +266,7 @@ export function ReportsPage() {
 
   return (
     <AppLayout container contentClassName="space-y-6 md:space-y-8 print:p-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Reports</h1>
           <p className="text-sm md:text-base text-muted-foreground">Strategic facility maintenance insights.</p>
@@ -245,11 +274,7 @@ export function ReportsPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full md:w-auto">
           <DatePickerWithRange date={dateRange} setDate={setDateRange} className="w-full sm:w-auto" />
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" onClick={handlePrint} className="flex-1 sm:flex-none">
-              <Printer className="mr-2 h-4 w-4" /> Print
-            </Button>
-
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
@@ -275,9 +300,6 @@ export function ReportsPage() {
               {isRefining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-purple-500" />}
               Refine AI
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExportCSV} className="flex-1 sm:flex-none">
-              <Table className="mr-2 h-4 w-4" /> CSV
-            </Button>
             <Button size="sm" className="btn-gradient flex-1 sm:flex-none" onClick={handleExportPDF} disabled={isExporting}>
               {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               PDF
@@ -287,7 +309,7 @@ export function ReportsPage() {
       </div>
 
       {/* Hidden container for PDF generation - keep it renderable for html2canvas */}
-      <div className="fixed top-0 left-0 opacity-0 pointer-events-none -z-10 w-[210mm] min-h-[297mm]" aria-hidden="true">
+      <div className="fixed top-0 left-[-5000px] pointer-events-none -z-10 w-[210mm] max-w-[100vw] min-h-[297mm] overflow-hidden" aria-hidden="true">
         <div ref={tableRef} className="w-[210mm] min-h-[297mm] bg-white text-black p-8 shadow-none">
           {/* Wrapper to enforce consistent width for capture */}
           <ReportTable tickets={tickets} period={periodString} systemName="MTrack System" logoSrc="/apple-touch-icon.png" />
@@ -298,17 +320,17 @@ export function ReportsPage() {
       <div ref={reportRef} id="report-content" className="bg-background print:bg-white p-1 md:p-4 rounded-xl print:p-0">
 
         {/* Formal Header */}
-        <div className="border-b-2 border-slate-900 pb-4 mb-6 md:mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="border-b-2 border-slate-900 pb-4 mb-6 md:mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <div className="h-12 w-12 md:h-16 md:w-16 rounded-lg bg-transparent flex items-center justify-center border border-slate-100 dark:border-slate-800">
               <img src="/apple-touch-icon.png" alt="Logo" className="h-10 w-10 md:h-14 md:w-14 object-contain" />
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">MTrack System</h1>
-              <p className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Facility Management Division</p>
+              <p className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Facility & Building Maintenance</p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-left md:text-right">
             <p className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground">Report Period</p>
             <p className="text-sm md:text-base font-black">
               {periodString}

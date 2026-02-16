@@ -39,7 +39,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       id,
       createdAt: createdAt,
       updatedAt: now,
-      status: body.status || 'New'
+      status: body.status || 'In Progress / Pending'
     };
     const created = await TicketEntity.create(c.env, ticketData);
 

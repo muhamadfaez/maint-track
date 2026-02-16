@@ -64,8 +64,8 @@ export function HomePage() {
     <AppLayout container contentClassName="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Supervisor Dashboard</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Facility maintenance at a glance.</p>
+          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">MTrack System</h1>
+          <p className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Facility & Building Maintenance</p>
         </div>
         <Button asChild className="btn-gradient w-full md:w-auto">
           <Link to="/tickets">

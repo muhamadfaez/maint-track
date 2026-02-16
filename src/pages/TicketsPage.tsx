@@ -73,7 +73,7 @@ export function TicketsPage() {
   }, [search, categoryFilter, statusFilter, dateRange]);
 
   return (
-    <AppLayout container contentClassName="space-y-6">
+    <AppLayout container contentClassName="space-y-6 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Maintenance Tickets</h1>
@@ -83,8 +83,8 @@ export function TicketsPage() {
           <NewTicketDialog />
         </div>
       </div>
-      <Card className="shadow-sm border-muted">
-        <CardContent className="p-4 flex flex-col gap-3">
+      <Card className="shadow-sm border-muted w-full max-w-full overflow-hidden">
+        <CardContent className="p-4 flex flex-col gap-3 min-w-0">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -123,7 +123,7 @@ export function TicketsPage() {
           </div>
         </CardContent>
       </Card>
-      <div className="grid gap-3 md:gap-4">
+      <div className="grid gap-3 md:gap-4 w-full">
         {isLoading ? (
           <div className="h-48 flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -136,12 +136,12 @@ export function TicketsPage() {
         ) : (
           <>
             {paginatedTickets.map(ticket => (
-              <Link key={ticket.id} to={`/tickets/${ticket.id}`}>
-                <Card className="hover:border-primary/50 hover:bg-accent/5 transition-all cursor-pointer group rounded-xl overflow-hidden">
-                  <CardContent className="p-4 flex items-center justify-between gap-4">
+              <Link key={ticket.id} to={`/tickets/${ticket.id}`} className="block w-full">
+                <Card className="hover:border-primary/50 hover:bg-accent/5 transition-all cursor-pointer group rounded-xl overflow-hidden w-full max-w-full">
+                  <CardContent className="p-4 flex items-center justify-between gap-4 min-w-0">
                     <div className="flex flex-col gap-1 min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-base md:text-lg truncate">{ticket.title}</span>
+                        <span className="font-semibold text-base md:text-lg truncate break-words">{ticket.title}</span>
                         <PriorityIndicator priority={ticket.priority} />
                       </div>
                       <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground flex-wrap">
@@ -154,8 +154,8 @@ export function TicketsPage() {
                         <span className="text-foreground/60">{format(parseISO(ticket.createdAt), 'MMM d, yyyy')}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <StatusBadge status={ticket.status} className="whitespace-nowrap" />
+                    <div className="flex flex-col items-end gap-2 min-w-0">
+                      <StatusBadge status={ticket.status} className="max-w-[120px] truncate whitespace-nowrap" />
                       <div className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-tighter hidden xs:block">
                         Updated {format(parseISO(ticket.updatedAt), 'MMM d')}
                       </div>
