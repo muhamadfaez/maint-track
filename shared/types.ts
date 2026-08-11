@@ -47,6 +47,18 @@ export interface MaintenanceTicket {
   initialPhotoUrl?: string;
 }
 
+export interface PushSubscriptionRecord {
+  id: string;
+  endpoint: string;
+  expirationTime: number | null;
+  keys: {
+    p256dh?: string;
+    auth?: string;
+  };
+  userAgent?: string;
+  createdAt: string;
+}
+
 export const MAINTENANCE_CATEGORIES: MaintenanceCategory[] = [
   "Plumbing & sanitary",
   "Electrical",

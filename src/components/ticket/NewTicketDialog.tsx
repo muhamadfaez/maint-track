@@ -38,6 +38,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { PhotoUpload } from './PhotoUpload';
+import { useLocation } from 'react-router-dom';
+import { consumePendingTicketDraft } from '@/lib/pwa-drafts';
 const formSchema = z.object({
   title: z.string().min(5, "Title is mandatory (min 5 chars)"),
   description: z.string().optional().nullable(),
@@ -54,6 +56,7 @@ const formSchema = z.object({
 export function NewTicketDialog() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -87,6 +90,29 @@ export function NewTicketDialog() {
       toast.error(error.message || 'Failed to create ticket');
     }
   });
+
+  React.useEffect(() => {
+    const openPendingDraft = () => {
+      const draft = consumePendingTicketDraft();
+      if (draft) {
+        form.reset({
+          ...form.getValues(),
+          title: draft.title || '',
+          description: draft.description || '',
+          location: draft.location || '',
+          initialPhotoUrl: draft.initialPhotoUrl || null,
+        });
+      }
+      setOpen(true);
+    };
+
+    const params = new URLSearchParams(location.search);
+    if (params.get('new') === '1') openPendingDraft();
+
+    const handleDraftReady = () => openPendingDraft();
+    window.addEventListener('mtrack:draft-ready', handleDraftReady);
+    return () => window.removeEventListener('mtrack:draft-ready', handleDraftReady);
+  }, [form, location.search]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     try {

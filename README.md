@@ -114,6 +114,18 @@ Deploy to Cloudflare Workers/Pages:
 
 **Observability**: Metrics/logs enabled via `observability.enabled: true`.
 
+## Progressive Web App
+
+MTrack ships with an installable manifest and a service worker at `public/sw.js`.
+
+- App-shell and previously viewed GET responses are available offline.
+- POST, PUT, and PATCH requests are queued only after a network failure and replayed with stable operation IDs.
+- DELETE requests are never queued or replayed automatically.
+- The app exposes install/update controls, connection status, manual sync, shortcuts, sharing, file handling, badges, and notification permission.
+- Background Sync and Periodic Background Sync are enabled where the browser grants support.
+
+Remote Web Push requires a VAPID key pair. Generate it once with `npx web-push generate-vapid-keys`, then configure `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and a `VAPID_SUBJECT` such as `mailto:admin@example.com`. Keep local values in `.dev.vars`; for production, store each value with `wrangler secret put`. The client obtains only the public key from `/api/push/vapid-public-key`; the private key never enters the browser bundle. Use **Send test notification** in the app-status menu to verify permission, subscription storage, encryption, delivery, and service-worker display end to end.
+
 ## Project Structure
 
 ```

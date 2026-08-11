@@ -1,10 +1,68 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { TicketEntity, TimelineEntity } from "./entities";
+import { PushSubscriptionEntity, TicketEntity, TimelineEntity } from "./entities";
 import { ok, bad, notFound } from './core-utils';
-import type { MaintenanceTicket, TimelineEvent } from "@shared/types";
+import type { MaintenanceTicket, TimelineEvent, PushSubscriptionRecord } from "@shared/types";
+import { getPushConfiguration, sendPushToAll, sendPushToSubscription } from './push-utils';
+
+async function stableSubscriptionId(endpoint: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(endpoint));
+  return Array.from(new Uint8Array(digest))
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
+  // PUSH SUBSCRIPTIONS
+  app.get('/api/push/vapid-public-key', (c) => {
+    const config = getPushConfiguration(c.env);
+    return ok(c, { publicKey: config.publicKey, configured: config.configured });
+  });
+
+  app.post('/api/push-subscriptions', async (c) => {
+    const body = await c.req.json() as PushSubscriptionJSON;
+    if (!body.endpoint) return bad(c, 'Push subscription endpoint is required');
+    const id = await stableSubscriptionId(body.endpoint);
+    const record: PushSubscriptionRecord = {
+      id,
+      endpoint: body.endpoint,
+      expirationTime: body.expirationTime ?? null,
+      keys: body.keys || {},
+      userAgent: c.req.header('User-Agent'),
+      createdAt: new Date().toISOString(),
+    };
+    return ok(c, await PushSubscriptionEntity.create(c.env, record));
+  });
+
+  app.post('/api/push/test', async (c) => {
+    const body = await c.req.json() as { subscriptionId?: string };
+    if (!body.subscriptionId) return bad(c, 'Subscription ID is required');
+    const subscription = new PushSubscriptionEntity(c.env, body.subscriptionId);
+    if (!await subscription.exists()) return notFound(c, 'Push subscription not found');
+
+    try {
+      await sendPushToSubscription(c.env, await subscription.getState(), {
+        title: 'MTrack notifications are working',
+        body: 'This device will receive maintenance ticket updates.',
+        url: '/tickets',
+        tag: 'mtrack-push-test',
+      });
+      return ok(c, { delivered: true });
+    } catch (error) {
+      console.error('[PUSH TEST]', error);
+      return c.json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Push delivery failed',
+      }, 502);
+    }
+  });
+
+  app.delete('/api/push-subscriptions/:id', async (c) => {
+    const id = c.req.param('id');
+    const deleted = await PushSubscriptionEntity.delete(c.env, id);
+    return ok(c, { id, deleted });
+  });
+
   // TICKETS
   app.get('/api/tickets', async (c) => {
     await TicketEntity.ensureSeed(c.env);
@@ -32,7 +90,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }
     const now = new Date().toISOString();
     const createdAt = body.createdAt || now;
-    const id = crypto.randomUUID();
+    const operationId = c.req.header('X-MTrack-Operation-Id');
+    const id = body.id || operationId || crypto.randomUUID();
+    const existingTicket = new TicketEntity(c.env, id);
+    if (operationId && await existingTicket.exists()) {
+      return ok(c, await existingTicket.getState());
+    }
     const ticketData: MaintenanceTicket = {
       ...TicketEntity.initialState,
       ...body,
@@ -45,13 +108,20 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
 
     // Initial timeline entry
     await TimelineEntity.create(c.env, {
-      id: crypto.randomUUID(),
+      id: operationId ? `${operationId}-created` : crypto.randomUUID(),
       ticketId: id,
       category: 'Status Change',
       note: 'Ticket created',
       author: body.reporter,
       timestamp: createdAt
     });
+
+    c.executionCtx.waitUntil(sendPushToAll(c.env, {
+      title: 'New maintenance ticket',
+      body: `${created.title} — ${created.location}`,
+      url: `/tickets/${created.id}`,
+      tag: `ticket-${created.id}`,
+    }).catch(error => console.error('[PUSH BROADCAST]', error)));
 
     return ok(c, created);
   });
@@ -62,6 +132,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const ticket = new TicketEntity(c.env, id);
     if (!await ticket.exists()) return notFound(c, 'Ticket not found');
     const oldState = await ticket.getState();
+    const operationId = c.req.header('X-MTrack-Operation-Id');
     const now = new Date().toISOString();
 
     const newState = await ticket.mutate(s => ({
@@ -74,7 +145,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     // Log Contractor Assignment
     if (body.contractorName && body.contractorName !== oldState.contractorName) {
       await TimelineEntity.create(c.env, {
-        id: crypto.randomUUID(),
+        id: operationId ? `${operationId}-assignment` : crypto.randomUUID(),
         ticketId: id,
         category: 'Contractor Assignment',
         note: body.assignmentNote || `Contractor assigned: ${body.contractorName}`,
@@ -86,13 +157,23 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     // Log status changes
     if (body.status && body.status !== oldState.status) {
       await TimelineEntity.create(c.env, {
-        id: crypto.randomUUID(),
+        id: operationId ? `${operationId}-status` : crypto.randomUUID(),
         ticketId: id,
         category: 'Status Change',
         note: `Status updated to ${body.status}`,
         author: 'Supervisor',
         timestamp: now
       });
+    }
+
+    if ((body.status && body.status !== oldState.status) ||
+      (body.contractorName && body.contractorName !== oldState.contractorName)) {
+      c.executionCtx.waitUntil(sendPushToAll(c.env, {
+        title: body.status && body.status !== oldState.status ? 'Ticket status updated' : 'Contractor assigned',
+        body: `${newState.title} — ${newState.status}`,
+        url: `/tickets/${id}`,
+        tag: `ticket-${id}`,
+      }).catch(error => console.error('[PUSH BROADCAST]', error)));
     }
 
     return ok(c, newState);
@@ -114,8 +195,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!await ticket.exists()) return notFound(c, 'Ticket not found');
 
     const now = new Date().toISOString();
+    const operationId = c.req.header('X-MTrack-Operation-Id');
+    if (operationId) {
+      const existingEvent = new TimelineEntity(c.env, operationId);
+      if (await existingEvent.exists()) return ok(c, await existingEvent.getState());
+    }
     const event = await TimelineEntity.create(c.env, {
-      id: crypto.randomUUID(),
+      id: operationId || crypto.randomUUID(),
       ticketId,
       category: body.category,
       note: body.note,
@@ -124,6 +210,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     });
 
     await ticket.patch({ updatedAt: now });
+    c.executionCtx.waitUntil(sendPushToAll(c.env, {
+      title: 'New ticket update',
+      body: `${body.author || 'Staff User'}: ${body.note.slice(0, 120)}`,
+      url: `/tickets/${ticketId}`,
+      tag: `ticket-${ticketId}`,
+    }).catch(error => console.error('[PUSH BROADCAST]', error)));
     return ok(c, event);
   });
 

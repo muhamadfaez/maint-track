@@ -15,8 +15,13 @@ import { HomePage } from '@/pages/HomePage'
 import { TicketsPage } from '@/pages/TicketsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { TicketDetailPage } from '@/pages/TicketDetailPage'
+import { ShareTargetPage } from '@/pages/ShareTargetPage'
+import { PwaStatus } from '@/components/pwa/PwaStatus'
 import { Toaster } from "@/components/ui/sonner"
 const queryClient = new QueryClient();
+window.addEventListener('mtrack:data-synced', () => {
+  queryClient.invalidateQueries();
+});
 const router = createBrowserRouter([
   {
     path: "/",
@@ -37,6 +42,11 @@ const router = createBrowserRouter([
     path: "/tickets/:id",
     element: <TicketDetailPage />,
     errorElement: <RouteErrorBoundary />,
+  },
+  {
+    path: "/share-target",
+    element: <ShareTargetPage />,
+    errorElement: <RouteErrorBoundary />,
   }
 ]);
 createRoot(document.getElementById('root')!).render(
@@ -44,6 +54,7 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <RouterProvider router={router} />
+        <PwaStatus />
         <Toaster />
       </ErrorBoundary>
     </QueryClientProvider>

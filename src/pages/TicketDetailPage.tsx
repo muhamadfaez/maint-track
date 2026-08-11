@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Printer,
   MoreVertical,
-  Trash2
+  Trash2,
+  Share2
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import type { MaintenanceTicket, TicketStatus } from '@shared/types';
@@ -92,6 +93,19 @@ export function TicketDetailPage() {
   const handlePrint = () => {
     window.print();
   };
+  const handleShare = async () => {
+    const shareData = {
+      title: ticket?.title || 'MTrack ticket',
+      text: ticket ? `${ticket.title} — ${ticket.location}` : 'MTrack maintenance ticket',
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Ticket link copied');
+    }
+  };
   if (isLoading) {
     return (
       <AppLayout container>
@@ -127,6 +141,9 @@ export function TicketDetailPage() {
           <div className="flex items-center gap-2 flex-wrap sm:justify-end">
             <Button variant="outline" size="sm" onClick={handlePrint} className="hidden md:flex h-9 shadow-sm">
               <Printer className="h-4 w-4 mr-2" /> Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleShare} className="hidden md:flex h-9 shadow-sm">
+              <Share2 className="h-4 w-4 mr-2" /> Share
             </Button>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Select

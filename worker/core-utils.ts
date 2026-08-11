@@ -12,6 +12,9 @@ export interface Env {
   FIREBASE_PRIVATE_KEY: string;
   GEMINI_API_KEY: string;
   AI: any; // Ideally this should be `Ai` from @cloudflare/workers-types but `any` works for now
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
   // Keeps the type system happy if other parts still refer to it during migration
   GlobalDurableObject?: any;
 }
