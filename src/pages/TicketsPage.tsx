@@ -24,14 +24,7 @@ import { Link } from 'react-router-dom';
 import { format, parseISO, isWithinInterval, startOfMonth, subMonths, endOfMonth } from 'date-fns';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
+import { ResponsivePagination } from '@/components/ui/responsive-pagination';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -59,7 +52,7 @@ export function TicketsPage() {
     queryFn: () => api<{ items: MaintenanceTicket[] }>('/api/tickets'),
   });
 
-  const tickets = ticketsPage?.items ?? [];
+  const tickets = useMemo(() => ticketsPage?.items ?? [], [ticketsPage?.items]);
   const summary = useMemo(() => ({
     open: tickets.filter(ticket => ticket.status === 'In Progress / Pending').length,
     priority: tickets.filter(ticket => ticket.priority === 'Urgent' || ticket.priority === 'High').length,
@@ -104,8 +97,8 @@ export function TicketsPage() {
   };
 
   return (
-    <AppLayout container contentClassName="mx-auto w-full max-w-6xl space-y-6 md:space-y-8">
-      <header className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/90 px-5 py-6 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.5)] sm:px-7 md:px-9 md:py-8 dark:border-slate-800 dark:bg-slate-950/80">
+    <AppLayout container contentClassName="space-y-5 sm:space-y-6 md:space-y-8">
+      <header className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-6 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.5)] sm:rounded-[28px] sm:px-7 md:px-9 md:py-8 dark:border-slate-800 dark:bg-slate-950/80">
         <div className="absolute -right-16 -top-24 h-60 w-60 rounded-full bg-teal-300/20 blur-3xl dark:bg-teal-500/10" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -113,22 +106,22 @@ export function TicketsPage() {
               <ListFilter className="h-3.5 w-3.5" />
               Maintenance workspace
             </div>
-            <h1 className="text-3xl font-black tracking-[-0.045em] text-slate-950 sm:text-4xl dark:text-white">Tickets, without the noise.</h1>
+            <h1 className="break-words text-2xl font-black leading-tight tracking-[-0.04em] text-slate-950 min-[380px]:text-3xl sm:text-4xl dark:text-white">Tickets, without the noise.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base dark:text-slate-400">
               Find, prioritise, and follow every facility issue from one focused queue.
             </p>
           </div>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="grid grid-cols-3 divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-slate-50/80 px-2 py-3 dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900/70">
-              <div className="min-w-[74px] px-3 text-center">
+            <div className="grid w-full grid-cols-3 divide-x divide-slate-200 rounded-2xl border border-slate-200 bg-slate-50/80 px-1 py-3 sm:w-auto sm:px-2 dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900/70">
+              <div className="min-w-0 px-1 text-center sm:px-3">
                 <p className="text-lg font-black text-teal-700 dark:text-teal-300">{summary.open}</p>
                 <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Open</p>
               </div>
-              <div className="min-w-[74px] px-3 text-center">
+              <div className="min-w-0 px-1 text-center sm:px-3">
                 <p className="text-lg font-black text-rose-600 dark:text-rose-300">{summary.priority}</p>
                 <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Priority</p>
               </div>
-              <div className="min-w-[74px] px-3 text-center">
+              <div className="min-w-0 px-1 text-center sm:px-3">
                 <p className="text-lg font-black text-emerald-600 dark:text-emerald-300">{summary.resolved}</p>
                 <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Resolved</p>
               </div>
@@ -252,50 +245,12 @@ export function TicketsPage() {
               </Link>
             ))}
 
-            {totalPages > 1 && (
-              <div className="pt-4">
-                <Pagination>
-                  <PaginationContent className="rounded-xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        aria-disabled={currentPage === 1}
-                        onClick={event => {
-                          event.preventDefault();
-                          if (currentPage > 1) setCurrentPage(page => page - 1);
-                        }}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-40' : ''}
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: totalPages }, (_, index) => index + 1).map(page => (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          href="#"
-                          isActive={currentPage === page}
-                          onClick={event => {
-                            event.preventDefault();
-                            setCurrentPage(page);
-                          }}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        aria-disabled={currentPage === totalPages}
-                        onClick={event => {
-                          event.preventDefault();
-                          if (currentPage < totalPages) setCurrentPage(page => page + 1);
-                        }}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-40' : ''}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
-            )}
+            <ResponsivePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              className="mt-4 rounded-xl border border-slate-200 bg-white/90 p-2 shadow-sm dark:border-slate-800 dark:bg-slate-950/80"
+            />
           </>
         )}
       </section>

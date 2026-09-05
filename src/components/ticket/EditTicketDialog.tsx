@@ -121,7 +121,7 @@ export function EditTicketDialog({ ticket }: EditTicketDialogProps) {
                     <Edit2 className="h-4 w-4" /> Edit Ticket
                 </Button>
             </DialogTrigger>
-            <DialogContent className="w-[95vw] sm:max-w-[650px] max-h-[95vh] p-0 border-none glass overflow-hidden flex flex-col">
+            <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] flex-col overflow-hidden border-none p-0 glass sm:max-h-[95vh] sm:max-w-[650px]">
                 <div className="p-3 sm:p-6 overflow-y-auto custom-scrollbar">
                     <DialogHeader className="mb-3 sm:mb-6 text-left">
                         <DialogTitle className="text-lg sm:text-xl font-bold">Edit Maintenance Ticket</DialogTitle>
@@ -163,7 +163,7 @@ export function EditTicketDialog({ ticket }: EditTicketDialogProps) {
                                     />
 
                                     {/* Reporter & Date Grouped into 2 cols on mobile */}
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
                                         <FormField
                                             control={form.control}
                                             name="reporter"
@@ -231,7 +231,7 @@ export function EditTicketDialog({ ticket }: EditTicketDialogProps) {
 
                                 {/* Right Column */}
                                 <div className="space-y-3 sm:space-y-4">
-                                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 sm:gap-4">
                                         <FormField
                                             control={form.control}
                                             name="category"

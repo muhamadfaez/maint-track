@@ -68,6 +68,11 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     await TicketEntity.ensureSeed(c.env);
     const cursor = c.req.query('cursor');
     const limit = c.req.query('limit');
+    // Existing screens and the offline cache expect a complete collection and
+    // paginate/filter locally. Only return one page when explicitly requested.
+    if (cursor === undefined && limit === undefined) {
+      return ok(c, await TicketEntity.listAll(c.env));
+    }
     const page = await TicketEntity.list(
       c.env,
       cursor ?? null,

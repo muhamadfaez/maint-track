@@ -22,8 +22,8 @@ export function ShareTargetPage() {
   }, [navigate, params]);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-950 p-6 text-white">
-      <div className="text-center">
+    <main className="grid min-h-dvh place-items-center bg-slate-950 px-4 py-6 text-white sm:px-6">
+      <div className="w-full max-w-sm text-center">
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-teal-400 text-slate-950">
           <Share2 className="h-5 w-5" />
         </div>

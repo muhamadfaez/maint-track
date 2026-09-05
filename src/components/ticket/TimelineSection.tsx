@@ -98,14 +98,14 @@ export function TimelineSection({ ticketId }: TimelineSectionProps) {
   };
 
   return (
-    <Card className="flex flex-col h-full">
-      <CardHeader>
+    <Card className="flex h-full min-w-0 flex-col">
+      <CardHeader className="p-4 sm:p-6">
         <CardTitle className="text-lg flex items-center gap-2">
           <Clock className="h-5 w-5" /> Action Log
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col gap-6 overflow-hidden">
-        <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+      <CardContent className="flex min-w-0 flex-1 flex-col gap-6 overflow-hidden p-4 pt-0 sm:p-6 sm:pt-0">
+        <div className="flex-1 space-y-6 overflow-y-auto sm:pr-2">
           {isLoading ? (
             <div className="flex justify-center p-4"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" /></div>
           ) : events?.length === 0 ? (
@@ -129,10 +129,10 @@ export function TimelineSection({ ticketId }: TimelineSectionProps) {
                   </div>
                   {/* Content */}
                   <div className="flex flex-col gap-1 w-full">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">{event.author}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
+                    <div className="flex min-w-0 flex-col gap-1 min-[380px]:flex-row min-[380px]:items-start min-[380px]:justify-between">
+                      <span className="break-words text-sm font-semibold">{event.author}</span>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground sm:text-xs">
                           {formatDistanceToNow(parseISO(event.timestamp), { addSuffix: true })}
                         </span>
                         {event.category === 'Comment' && !editingId && (

@@ -223,16 +223,32 @@ export abstract class IndexedEntity<S extends { id: string }> extends Entity<S> 
   static async list<T extends IndexedEntity<any>>(
     this: new (env: Env, id: string) => T,
     env: Env,
-    _cursor?: string | null, // Pagination simplified for now
+    cursor?: string | null,
     limit: number = 100
   ): Promise<{ items: any[]; next: string | null }> {
     const collection = (this as any).collection;
-    const response = (await FirestoreClient.request(env, `/${collection}?pageSize=${limit}`)) as any;
+    const params = new URLSearchParams({ pageSize: String(limit) });
+    if (cursor) params.set('pageToken', cursor);
+    const response = (await FirestoreClient.request(env, `/${collection}?${params}`)) as any;
     const documents = response.documents || [];
     return {
       items: documents.map((d: any) => FirestoreClient.fromFirestore(d)),
       next: response.nextPageToken || null
     };
+  }
+
+  static async listAll(
+    this: { list(env: Env, cursor?: string | null): Promise<{ items: any[]; next: string | null }> },
+    env: Env
+  ): Promise<{ items: any[]; next: null }> {
+    const items: any[] = [];
+    let cursor: string | null = null;
+    do {
+      const page = await this.list(env, cursor);
+      items.push(...page.items);
+      cursor = page.next;
+    } while (cursor);
+    return { items, next: null };
   }
 
   static async ensureSeed<T extends IndexedEntity<any>>(

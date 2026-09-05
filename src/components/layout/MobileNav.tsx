@@ -21,7 +21,7 @@ export function MobileNav() {
   }, [location.pathname]);
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden w-[300px]">
+    <nav className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-50 w-[min(300px,calc(100vw-2rem))] -translate-x-1/2 md:hidden">
       <div className="relative h-16">
 
         {/* Background Layer with Deep Liquid Scoop */}

@@ -130,7 +130,7 @@ export function TicketDetailPage() {
     );
   }
   return (
-    <AppLayout container contentClassName="space-y-6">
+    <AppLayout container contentClassName="space-y-5 sm:space-y-6">
       <div className="flex flex-col gap-4 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
@@ -138,14 +138,14 @@ export function TicketDetailPage() {
               <ArrowLeft className="h-4 w-4" /> <span>Back to Tickets</span>
             </Link>
           </Button>
-          <div className="flex items-center gap-2 flex-wrap sm:justify-end">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
             <Button variant="outline" size="sm" onClick={handlePrint} className="hidden md:flex h-9 shadow-sm">
               <Printer className="h-4 w-4 mr-2" /> Print
             </Button>
             <Button variant="outline" size="sm" onClick={handleShare} className="hidden md:flex h-9 shadow-sm">
               <Share2 className="h-4 w-4 mr-2" /> Share
             </Button>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:flex sm:w-auto">
               <Select
                 value={ticket.status}
                 onValueChange={(val) => updateStatusMutation.mutate(val as TicketStatus)}
@@ -198,10 +198,10 @@ export function TicketDetailPage() {
               <StatusBadge status={ticket.status} className="text-xs px-2.5 py-0.5" />
               <PriorityIndicator priority={ticket.priority} />
             </div>
-            <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 leading-tight">
+            <h1 className="break-words text-2xl font-bold leading-tight tracking-tight text-slate-900 md:text-4xl">
               {ticket.title}
             </h1>
-            <div className="flex items-center gap-3 text-muted-foreground text-xs md:text-sm">
+            <div className="flex min-w-0 items-start gap-2 text-xs text-muted-foreground md:items-center md:gap-3 md:text-sm">
               <Calendar className="h-3.5 w-3.5" />
               <span>Reported {format(parseISO(ticket.createdAt), 'PPP')}</span>
             </div>

@@ -111,9 +111,10 @@ console.log(`Server is running`)
 export default {
   async fetch(request, env, ctx) {
     const pathname = new URL(request.url).pathname;
+    // Register routes before any request builds Hono's matcher, including health checks.
+    safeLoadUserRoutes(app);
 
     if (pathname.startsWith('/api/') && pathname !== '/api/health' && pathname !== '/api/client-errors') {
-      await safeLoadUserRoutes(app);
       if (userRoutesLoadError) {
         return new Response(
           JSON.stringify({

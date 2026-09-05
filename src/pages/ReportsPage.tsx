@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Printer, Download, BarChart3, PieChart as PieChartIcon, TrendingUp, ShieldCheck, FileText, Loader2, Table, Sparkles } from 'lucide-react';
+import { Printer, Download, BarChart3, PieChart as PieChartIcon, TrendingUp, ShieldCheck, FileText, Loader2, Table, Sparkles, Eye } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import type { MaintenanceTicket } from '@shared/types';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -15,7 +15,6 @@ import jsPDF from 'jspdf';
 import { DateRange } from 'react-day-picker';
 import { ReportTable } from '@/components/report/ReportTable';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Eye } from 'lucide-react';
 
 interface RefinedTicketData {
   id: string;
@@ -42,7 +41,7 @@ export function ReportsPage() {
     queryFn: () => api<{ items: MaintenanceTicket[] }>('/api/tickets'),
   });
 
-  const allTickets = ticketsPage?.items ?? [];
+  const allTickets = React.useMemo(() => ticketsPage?.items ?? [], [ticketsPage?.items]);
 
   const formatDate = (value: string, pattern: string) => {
     const date = parseISO(value);
@@ -265,42 +264,42 @@ export function ReportsPage() {
   }
 
   return (
-    <AppLayout container contentClassName="space-y-6 md:space-y-8 print:p-0">
+    <AppLayout container contentClassName="space-y-5 sm:space-y-6 md:space-y-8 print:max-w-none print:p-0">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Reports</h1>
           <p className="text-sm md:text-base text-muted-foreground">Strategic facility maintenance insights.</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full md:w-auto">
+        <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center md:w-auto">
           <DatePickerWithRange date={dateRange} setDate={setDateRange} className="w-full sm:w-auto" />
 
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
                   <Eye className="mr-2 h-4 w-4" /> Preview
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-[230mm] max-h-[90vh] overflow-y-auto bg-slate-100">
+              <DialogContent className="max-h-[90dvh] w-[calc(100vw-2rem)] max-w-[230mm] overflow-auto bg-slate-100 p-4 sm:p-6">
                 <DialogHeader>
                   <DialogTitle>Report Preview</DialogTitle>
                   <DialogDescription>
                     This is how your PDF report will look. {refinedData.size > 0 && <span className="text-purple-600 font-bold">✨ AI Refined Content Active</span>}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="flex justify-center p-4">
-                  <div className="scale-75 origin-top shadow-lg">
+                <div className="overflow-auto rounded-lg p-2 sm:p-4">
+                  <div className="w-[210mm] origin-top-left scale-[0.36] shadow-lg min-[400px]:scale-[0.42] sm:scale-[0.7] lg:scale-75">
                     <ReportTable tickets={tickets} period={periodString} systemName="MTrack System" logoSrc="/apple-touch-icon.png" />
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
 
-            <Button variant="outline" size="sm" onClick={handleRefineAI} disabled={isRefining} className="flex-1 sm:flex-none btn-gradient-secondary">
+            <Button variant="outline" size="sm" onClick={handleRefineAI} disabled={isRefining} className="w-full sm:w-auto btn-gradient-secondary">
               {isRefining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-purple-500" />}
               Refine AI
             </Button>
-            <Button size="sm" className="btn-gradient flex-1 sm:flex-none" onClick={handleExportPDF} disabled={isExporting}>
+            <Button size="sm" className="btn-gradient col-span-2 w-full sm:w-auto" onClick={handleExportPDF} disabled={isExporting}>
               {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               PDF
             </Button>
@@ -317,17 +316,17 @@ export function ReportsPage() {
       </div>
 
       {/* On-screen Dashboard Container */}
-      <div ref={reportRef} id="report-content" className="bg-background print:bg-white p-1 md:p-4 rounded-xl print:p-0">
+      <div ref={reportRef} id="report-content" className="min-w-0 rounded-xl bg-background print:bg-white sm:p-1 md:p-4 print:p-0">
 
         {/* Formal Header */}
         <div className="border-b-2 border-slate-900 pb-4 mb-6 md:mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="h-12 w-12 md:h-16 md:w-16 rounded-lg bg-transparent flex items-center justify-center border border-slate-100 dark:border-slate-800">
               <img src="/apple-touch-icon.png" alt="Logo" className="h-10 w-10 md:h-14 md:w-14 object-contain" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">MTrack System</h1>
-              <p className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">Facility & Building Maintenance</p>
+              <p className="break-words text-[10px] font-bold uppercase tracking-wider text-slate-500 sm:text-xs sm:tracking-widest md:text-sm">Facility & Building Maintenance</p>
             </div>
           </div>
           <div className="text-left md:text-right">
@@ -342,7 +341,7 @@ export function ReportsPage() {
         <KPIGrid tickets={tickets} />
 
         {/* Dashboard Widgets */}
-        <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mb-6">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
           <Card className="print:shadow-none print:border-slate-200 shadow-sm overflow-hidden break-inside-avoid">
             <CardHeader className="pb-2 p-4 md:p-6 bg-muted/30">
               <CardTitle className="text-xs font-black flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
@@ -379,7 +378,7 @@ export function ReportsPage() {
         </div>
 
         {/* Lists Section */}
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
           <Card className="print:shadow-none print:border-slate-200 shadow-sm break-inside-avoid">
             <CardHeader className="p-4 md:p-6 flex flex-row items-center justify-between space-y-0">
               <div>
@@ -391,7 +390,7 @@ export function ReportsPage() {
             <CardContent className="p-4 md:p-6 pt-0">
               <div className="space-y-3">
                 {criticalTickets.slice(0, 8).map(ticket => (
-                  <div key={ticket.id} className="flex items-center justify-between border-b border-muted/60 pb-3 last:border-0 last:pb-0">
+                  <div key={ticket.id} className="flex min-w-0 flex-col items-start gap-2 border-b border-muted/60 pb-3 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between last:border-0 last:pb-0">
                     <div className="flex flex-col min-w-0 flex-1 pr-4">
                       <span className="text-sm font-bold truncate">{ticket.title}</span>
                       <span className="text-[10px] text-muted-foreground uppercase font-medium">{ticket.location}</span>
@@ -419,7 +418,7 @@ export function ReportsPage() {
             <CardContent className="p-4 md:p-6 pt-0">
               <div className="space-y-3">
                 {completedTickets.slice(0, 8).map(ticket => (
-                  <div key={ticket.id} className="flex items-center justify-between border-b border-muted/60 pb-3 last:border-0 last:pb-0">
+                  <div key={ticket.id} className="flex min-w-0 flex-col items-start gap-2 border-b border-muted/60 pb-3 min-[380px]:flex-row min-[380px]:items-center min-[380px]:justify-between last:border-0 last:pb-0">
                     <div className="flex flex-col min-w-0 flex-1 pr-4">
                       <span className="text-sm font-bold truncate">{ticket.title}</span>
                       <span className="text-[10px] text-muted-foreground font-medium uppercase">

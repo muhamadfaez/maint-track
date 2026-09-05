@@ -22,8 +22,10 @@ export function AppLayout({ children, container = false, className, contentClass
            - Mobile: pb-32 (8rem) to clear the floating MagicNav (bottom-6 + 4rem height + breathing room)
            - Desktop: standard padding
         */}
-        <div className={container ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-12 pb-32 md:pb-12" : "pb-32 md:pb-0"}>
-          <div className={contentClassName}>{children}</div>
+        <div className={container
+          ? "mx-auto w-full min-w-0 max-w-7xl px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-8 md:pb-10 md:pt-10 lg:px-8"
+          : "w-full min-w-0 pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-0"}>
+          <div className={cn(container && "mx-auto w-full min-w-0 max-w-6xl", contentClassName)}>{children}</div>
         </div>
         {/* Floating MagicNav is fixed; AppLayout ensures content beneath doesn't overlap at the very bottom */}
         <MobileNav />

@@ -18,14 +18,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { StatusBadge, PriorityIndicator } from '@/components/ticket/TicketComponents';
 import { differenceInHours, format, parseISO } from 'date-fns';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
+import { ResponsivePagination } from '@/components/ui/responsive-pagination';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -115,8 +108,8 @@ export function HomePage() {
   }
 
   return (
-    <AppLayout container contentClassName="mx-auto w-full max-w-6xl space-y-6 md:space-y-8">
-      <section className="relative overflow-hidden rounded-[28px] bg-slate-950 px-5 py-6 text-white shadow-[0_28px_70px_-38px_rgba(2,132,130,0.75)] sm:px-7 md:px-9 md:py-8 dark:border dark:border-slate-800">
+    <AppLayout container contentClassName="space-y-5 sm:space-y-6 md:space-y-8">
+      <section className="relative overflow-hidden rounded-2xl bg-slate-950 px-5 py-6 text-white shadow-[0_28px_70px_-38px_rgba(2,132,130,0.75)] sm:rounded-[28px] sm:px-7 md:px-9 md:py-8 dark:border dark:border-slate-800">
         <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-teal-400/20 blur-3xl" />
         <div className="absolute -bottom-24 left-1/3 h-48 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
         <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -128,14 +121,14 @@ export function HomePage() {
               </span>
               Operations overview
             </div>
-            <h1 className="text-3xl font-black tracking-[-0.045em] sm:text-4xl md:text-5xl">Keep every space running.</h1>
+            <h1 className="break-words text-2xl font-black leading-tight tracking-[-0.04em] min-[380px]:text-3xl sm:text-4xl md:text-5xl">Keep every space running.</h1>
             <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300 sm:text-base">
               A focused view of maintenance activity, resolved work, and issues that need a timely follow-up.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col md:items-end">
             <p className="text-xs font-medium text-slate-400">{format(new Date(), 'EEEE, MMMM d')}</p>
-            <Button asChild className="h-11 rounded-xl bg-teal-400 px-5 font-bold text-slate-950 shadow-none hover:bg-teal-300">
+            <Button asChild className="h-11 w-full rounded-xl bg-teal-400 px-4 font-bold text-slate-950 shadow-none sm:w-auto sm:px-5 hover:bg-teal-300">
               <Link to="/tickets">
                 <ClipboardList className="h-4 w-4" />
                 View all tickets
@@ -152,7 +145,7 @@ export function HomePage() {
         <StatCard label="Needs follow-up" value={stats.stagnantCount} helper="No update in 48h+" icon={Clock3} tone="rose" />
       </section>
 
-      <section className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white/90 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.55)] dark:border-slate-800 dark:bg-slate-950/75">
+      <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/90 shadow-[0_24px_70px_-44px_rgba(15,23,42,0.55)] sm:rounded-[26px] dark:border-slate-800 dark:bg-slate-950/75">
         <div className="flex flex-col gap-4 border-b border-slate-200/70 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-slate-800">
           <div className="flex items-start gap-3">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
@@ -226,48 +219,12 @@ export function HomePage() {
             </div>
           )}
 
-          {stats.stagnant.length > ITEMS_PER_PAGE && (
-            <Pagination className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    aria-disabled={currentPage === 1}
-                    className={currentPage === 1 ? 'pointer-events-none opacity-40' : ''}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setCurrentPage(prev => Math.max(1, prev - 1));
-                    }}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, index) => (
-                  <PaginationItem key={`page-${index + 1}`}>
-                    <PaginationLink
-                      href="#"
-                      isActive={currentPage === index + 1}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setCurrentPage(index + 1);
-                      }}
-                    >
-                      {index + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    aria-disabled={currentPage === totalPages}
-                    className={currentPage === totalPages ? 'pointer-events-none opacity-40' : ''}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setCurrentPage(prev => Math.min(totalPages, prev + 1));
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
+          <ResponsivePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800"
+          />
         </div>
       </section>
     </AppLayout>
